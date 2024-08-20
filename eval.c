@@ -5,6 +5,30 @@ static int _is_list(Object *obj);
 static Object* _eval_list(Object *env, Object *list);
 
 static Object*
+_reverse(Object *p)
+{
+	Object *ret = Nil;	
+	for(;p != Nil;){
+		Object *head = p;
+		p = p->cdr;
+		head->cdr = ret;
+		ret = head;
+	}
+	return ret;
+}
+
+static int
+_length(Object *list)
+{
+	int len = 0;
+	for(; TYPE(list) == Obj_Cell; list = list->cdr)
+		++len;
+	if(list == Nil)
+		return len;
+	return -1;
+}
+
+static Object*
 _entry_fn(Object *env, Object *list, enum Obj_Type type)
 {
 	if(TYPE(list)!= Obj_Cell ||
@@ -55,6 +79,33 @@ fn_minus(Object *env, Object *list)
 	return new_int(sum);
 }
 
+Object*
+fn_quote(Object *env, Object *list)
+{
+	if(_length(list) != 1)
+		error_expr("Malformed quote", list);
+	return list->car;
+}
+
+Object*
+fn_car(Object *env, Object *list)
+{
+	Object *args = _eval_list(env, list);
+	if(TYPE(args->car) != Obj_Cell
+		|| TYPE(args->cdr) != Obj_Nil)
+		error_expr("Malformed car", list);
+	return args->car->car;
+}
+
+Object*
+fn_cdr(Object *env, Object *list)
+{
+	Object *args = _eval_list(env, list);
+	if(TYPE(args->car) != Obj_Cell)
+		error_expr("Malformed cdr", list);
+	return args->car->cdr;
+}
+
 static Object*
 _find(Object *env, Object *sym)
 {
@@ -87,12 +138,15 @@ static Object*
 _eval_list(Object *env, Object *list)
 {
 	Object *head = Nil;
-	for(Object *lp = list; lp != Nil; lp = lp->cdr){
+	Object *lp = list;
+	for(;lp != Nil && TYPE(lp) == Obj_Cell; lp = lp->cdr){
 		Object *expr = lp->car;
 		Object *res = eval(env, expr);
 		head = new_cons(res, head);
 	}
-	return reverse(head);
+	if(lp == Nil)
+		return _reverse(head);
+	error_expr("expected Cell", list);
 }
 
 static Object*
@@ -141,9 +195,9 @@ eval(Object *env, Object *obj)
 	case Obj_Cell:{
 			Object *fn = obj->car;
 			fn = eval(env, fn);
-			Object *args = obj->cdr;
 			if(TYPE(fn) != Obj_Prim && TYPE(fn) != Obj_Func)
-				error_expr("Cell head is not function", fn);
+				error_expr("expected function", obj);
+			Object *args = obj->cdr;
 			return _apply(env, fn, args);
 		}
 	}

@@ -3,10 +3,18 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern Object* fn_plus(Object *env, Object *args);
+extern Object* fn_minus(Object *env, Object *args);
+extern Object* fn_lambda(Object *env, Object *args);
+extern Object* fn_car(Object *env, Object *list);
+extern Object* fn_cdr(Object *env, Object *list);
+extern Object* fn_quote(Object *env, Object *list);
+
 /* Const Variables */
 Object *True = &(Object){ .type = Obj_True };
 Object *False = &(Object){ .type = Obj_False };
 Object *Nil = &(Object){ .type = Obj_Nil };
+Object *Dot = &(Object){ .type = Obj_Dot };
 Object *Cparen = &(Object){ .type = Obj_Cparen };
 
 /* roots */
@@ -84,12 +92,14 @@ _init_const_vars(void)
 	sym = new_symbol("true"); 	add_variable(sym, True, root_env);
 	sym = new_symbol("false");	add_variable(sym, False, root_env);
 	sym = new_symbol("nil");	add_variable(sym, Nil, root_env);
+	sym = new_symbol(".");		add_variable(sym, Dot, root_env);
 }
 
 void
 add_primitive(char *name, Primitive fn, Object *env)
 {
 	Object *sym = new_symbol(name);	
+	SET_ATOM(sym);
 	Object *prim = new_primitve(fn);
 	add_variable(sym, prim, env);
 }
@@ -100,11 +110,11 @@ _init_primitive(void)
 	add_primitive("+", fn_plus, root_env);
     add_primitive("-", fn_minus, root_env);
      add_primitive("lambda", fn_lambda, root_env);
+	 add_primitive("car", fn_car, root_env);
+	 add_primitive("quote", fn_quote, root_env);
+     add_primitive("cdr", fn_cdr, root_env);
 	/*
-	 *add_primitive("quote", fn_quote, root_env);
      *add_primitive("cons", fn_cons, root_env);
-     *add_primitive("car", fn_car, root_env);
-     *add_primitive("cdr", fn_cdr, root_env);
      *add_primitive("setq", fn_setq, root_env);
      *add_primitive("setcar", fn_setcar, root_env);
      *add_primitive("while", fn_while, root_env);

@@ -21,7 +21,6 @@ void del_map(Object *obj);
 Object* next_expr(void);
 void print_expr(Object *obj);
 void skip_line(void);
-Object* reverse(Object *p);
 
 /* memory */
 void* xalloc(int sz);
@@ -45,6 +44,4 @@ void error_expr(char *msg, Object *obj);
 /* eval */
 Object* eval(Object *env, Object *obj);
 Object* push_env(Object *env, Object *vars, Object *args);
-Object* fn_plus(Object *env, Object *args);
-Object* fn_minus(Object *env, Object *args);
-Object* fn_lambda(Object *env, Object *args);
+

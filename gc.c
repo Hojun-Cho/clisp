@@ -72,6 +72,7 @@ Object*
 new_int(int val)
 {
 	Object *obj = new_object(Obj_Int);
+	SET_ATOM(obj);
 	obj->value = val;
 	return obj;
 }
@@ -92,6 +93,7 @@ new_symbol(char *sym)
 	if(obj)
 		return obj;
 	obj = new_object(Obj_Symbol);
+	SET_ATOM(obj);
 	int len = strlen(sym);
 	obj->sym = xalloc(len + 1);
 	memmove(obj->sym, sym, len + 1);
