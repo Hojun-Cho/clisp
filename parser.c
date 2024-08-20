@@ -40,10 +40,11 @@ void
 skip_line(void)
 {
 	for(;;){
-		int c = getchar();
-		if(c == EOF || c == '\n')
+		switch(getchar()){
+		case EOF:
+		case '\n':
 			return;
-		if(c == '\r'){
+		case '\r':
 			if(_lookup() == '\n')
 				getchar();
 			return;
