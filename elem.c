@@ -99,7 +99,6 @@ void
 add_primitive(char *name, Primitive fn, Object *env)
 {
 	Object *sym = new_symbol(name);	
-	SET_ATOM(sym);
 	Object *prim = new_primitve(fn);
 	add_variable(sym, prim, env);
 }
@@ -109,10 +108,10 @@ _init_primitive(void)
 {
 	add_primitive("+", fn_plus, root_env);
     add_primitive("-", fn_minus, root_env);
-     add_primitive("lambda", fn_lambda, root_env);
-	 add_primitive("car", fn_car, root_env);
-	 add_primitive("quote", fn_quote, root_env);
-     add_primitive("cdr", fn_cdr, root_env);
+    add_primitive("lambda", fn_lambda, root_env);
+	add_primitive("car", fn_car, root_env);
+	add_primitive("quote", fn_quote, root_env);
+    add_primitive("cdr", fn_cdr, root_env);
 	/*
      *add_primitive("cons", fn_cons, root_env);
      *add_primitive("setq", fn_setq, root_env);

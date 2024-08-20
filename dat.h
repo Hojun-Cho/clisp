@@ -4,8 +4,7 @@
 #define STACK_SIZE 8192 * 4
 
 #define TYPE(x) ((x)->type & 0b11111111)
-#define SET_ATOM(x) ((x)->type |= Obj_Atom)
-#define ATOM(x) ((x)->type & Obj_Atom)
+
 enum Obj_Type
 {
 	Obj_None,
@@ -26,7 +25,6 @@ enum Obj_Type
 	Obj_Map,
 	Obj_Env,
 
-	Obj_Atom = 1 << 9,
 	Obj_Marked = 1 << 10,
 	Obj_Using = 1 << 16,
 };

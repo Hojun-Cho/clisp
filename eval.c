@@ -4,28 +4,14 @@
 static int _is_list(Object *obj);
 static Object* _eval_list(Object *env, Object *list);
 
-static Object*
-_reverse(Object *p)
-{
-	Object *ret = Nil;	
-	for(;p != Nil;){
-		Object *head = p;
-		p = p->cdr;
-		head->cdr = ret;
-		ret = head;
-	}
-	return ret;
-}
-
 static int
 _length(Object *list)
 {
-	int len = 0;
-	for(; TYPE(list) == Obj_Cell; list = list->cdr)
-		++len;
 	if(list == Nil)
-		return len;
-	return -1;
+		return 0;
+	if(TYPE(list) != Obj_Cell)
+		error_expr("expected list", list);
+	return _length(list->cdr) + 1;
 }
 
 static Object*
@@ -35,8 +21,7 @@ _entry_fn(Object *env, Object *list, enum Obj_Type type)
 		_is_list(list->car) == 0 ||
 		TYPE(list->cdr) != Obj_Cell)
 		error_expr("malformed lambda", list);
-	Object *ptr = list->car;
-	for(; TYPE(ptr) == Obj_Cell; ptr = ptr->cdr){
+	for(Object *ptr = list->car; TYPE(ptr) == Obj_Cell; ptr = ptr->cdr){
 		if(TYPE(ptr->car) != Obj_Symbol)
 			error_expr("parameter is not Obj_Symbol", ptr);
 	}
@@ -137,16 +122,13 @@ _is_list(Object *obj)
 static Object*
 _eval_list(Object *env, Object *list)
 {
-	Object *head = Nil;
-	Object *lp = list;
-	for(;lp != Nil && TYPE(lp) == Obj_Cell; lp = lp->cdr){
-		Object *expr = lp->car;
-		Object *res = eval(env, expr);
-		head = new_cons(res, head);
-	}
-	if(lp == Nil)
-		return _reverse(head);
-	error_expr("expected Cell", list);
+	if(list == Nil)
+		return Nil;
+	if(TYPE(list) != Obj_Cell)
+		error_expr("type is not list", list);
+	Object *car = eval(env, list->car);
+	Object *cdr = _eval_list(env, list->cdr);
+	return new_cons(car, cdr);
 }
 
 static Object*
