@@ -45,7 +45,7 @@ struct Object
 			int fixed;
 		};
 		/* symbol */
-		char *sym;
+		char sym[SYMBOL_MAX_LEN];
 		/* primitive */
 		Primitive fn;
 		/* function */

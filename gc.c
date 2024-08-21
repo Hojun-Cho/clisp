@@ -39,9 +39,6 @@ _init_object(Object *obj)
 	case STRING:
 		free(obj->beg);
 		break;
-    case SYMBOL: 
-		free(obj->sym);
-		break;
 	case MAP:
 		del_map(obj);
 		break;
@@ -93,8 +90,7 @@ new_symbol(char *sym)
 		return obj;
 	obj = new_object(SYMBOL);
 	int len = strlen(sym);
-	obj->sym = xalloc(len + 1);
-	memmove(obj->sym, sym, len + 1);
+	memcpy(obj->sym, sym, len + 1);
 	map_set(symbols, obj, obj); /* key and value is same */
 	return obj;
 }
