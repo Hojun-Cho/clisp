@@ -10,13 +10,6 @@ void str_puts(Object *s, char *ptr);
 int str_len(Object *a);
 int str_cmp(Object *a, Object *b);
 
-/* Map */
-Object* new_map(int cap, int (*cmp)(void*,void*), int (*hash)(Object*));
-Object* map_get(Object *map, void *key);
-void map_set(Object *map, void *key, Object *val);
-void map_iterate(Object *map, void (*fn)(Object *));
-void del_map(Object *obj);
-
 /* parser */
 Object* next_expr(void);
 void print_expr(Object *obj);

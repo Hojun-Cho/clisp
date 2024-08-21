@@ -5,7 +5,6 @@ OFILES=\
 	eval.o\
 	gc.o\
 	main.o\
-	map.o\
 	parser.o\
 	str.o
 

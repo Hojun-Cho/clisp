@@ -39,9 +39,6 @@ _init_object(Object *obj)
 	case STRING:
 		free(obj->beg);
 		break;
-	case MAP:
-		del_map(obj);
-		break;
     }
 	memset(obj, 0, sizeof(Object)); 
 	gc.using--;
@@ -85,13 +82,14 @@ new_cons(Object *car, Object *cdr)
 Object*
 new_symbol(char *sym)
 {
-	Object *obj = map_get(symbols, sym);
-	if(obj)
-		return obj;
-	obj = new_object(SYMBOL);
-	int len = strlen(sym);
-	memcpy(obj->sym, sym, len + 1);
-	map_set(symbols, obj, obj); /* key and value is same */
+	for(Object *c = symbols; c != Nil; c = c->cdr){
+		print_expr(c->car);
+		if(strcmp(sym, c->car->sym) == 0)
+			return c->car;
+	}
+	Object *obj = new_object(SYMBOL);
+	memcpy(obj->sym, sym, strlen(sym) + 1);
+	symbols = new_cons(obj, symbols);
 	return obj;
 }
 
@@ -161,9 +159,6 @@ _mark(Object *obj)
 	case ENV:
 		_mark(obj->vars);
 		_mark(obj->up);
-		break;
-	case MAP:
-		map_iterate(obj, _mark);
 		break;
 	}
 }

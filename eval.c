@@ -93,13 +93,15 @@ _cdr(Object *env, Object *list)
 	return args->car->cdr;
 }
 
-static Object*
+Object*
 _find(Object *env, Object *sym)
 {
 	for(Object *ptr = env; ptr != Nil; ptr = ptr->up){
-		Object *res = map_get(ptr->vars, sym);
-		if(res)
-			return res;
+		for(Object *c = ptr->vars; c != Nil; c = c->cdr){
+			Object *slot = c->car;
+			if(sym == slot->car)
+				return slot;
+		}
 	}
 	return 0;
 }

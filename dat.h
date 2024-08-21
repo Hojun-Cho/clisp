@@ -15,7 +15,6 @@ enum Obj_Type
 	PRIM,
 	FUNC,
 	LAMBDA,
-	MAP,
 	ENV,
 
 	Obj_Marked = 1 << 10,
@@ -45,7 +44,7 @@ struct Object
 			int fixed;
 		};
 		/* symbol */
-		char sym[SYMBOL_MAX_LEN];
+		char sym[SYMBOL_MAX_LEN + 1];
 		/* primitive */
 		Primitive fn;
 		/* function */
@@ -56,15 +55,8 @@ struct Object
 		};
 		/* frame */ 
 		struct{
-			Object *vars; /* actually map */
+			Object *vars;
 			Object *up;
-		};
-		/* Map object */
-		struct{
-			int cap;
-			Slot *slots;
-			int (*cmp)(void *, void *);
-			int (*hash)(Object *);
 		};
 	};
 };

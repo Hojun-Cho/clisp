@@ -12,59 +12,18 @@ Object *Nil;
 Object *symbols;
 Object *root_env;
 
-/* for map */
-static int
-_symbol_key_cmp(void *_x, void *_y)
-{
-	Object *x = _x;
-	char *y = _y;
-	if(x == 0 || y == 0)
-		return -1;
-	if(_x == _y)
-		return 0;
-	if(TYPE(x) != SYMBOL)
-		return -1;
-	return strcmp(x->sym, y);
-}
-
-static int
-_symbol_obj_hash(Object *x)
-{
-	return 0;
-}
-
-static int
-_env_key_cmp(void *_x, void *_y)
-{
-	Object *x = _x;
-	Object *y = _y;
-	if(x == 0 || y == 0)
-		return -1;
-	if(x == y)
-		return 0;
-	if(TYPE(x) != SYMBOL || TYPE(y) != SYMBOL)
-		return -1;
-	return strcmp(x->sym, y->sym);
-}
-
-static int
-_env_obj_hash(Object *x)
-{
-	return 0;
-}
-
 /* env */
 Object*
 push_env(Object *env, Object *vars, Object *args)
 {
-	Object *map = new_map(10, _env_key_cmp, _env_obj_hash);
+	Object *map = Nil;
 	for(;TYPE(vars) == CELL; vars = vars->cdr, args = args->cdr){
 		if(TYPE(args) != CELL)
 			error("Can't apply function argment dose not match");
 		Object *sym = vars->car;
 		Object *arg = args->car;
-		map_set(map, sym, arg);
-	}	
+		map = new_acons(sym, arg, map);
+	}
 	if(vars != Nil)
 		error("Can't apply function argment dose not match");
 	return new_env(map, env);
@@ -73,15 +32,24 @@ push_env(Object *env, Object *vars, Object *args)
 void
 add_variable(Object *sym, Object *val, Object *env)
 {
-	map_set(env->vars, sym, val);
+	Object *vars = env->vars;
+	env->vars = new_acons(sym, val, vars);
+}
+
+static Object*
+_new_symbol(char *sym)
+{
+	Object *obj = new_object(SYMBOL);
+	memcpy(obj->sym, sym, strlen(sym) + 1);
+	return obj;
 }
 
 static void
 _init_const_vars(void)
 {
-	True = new_symbol("true"); 	 
+	symbols = Nil = _new_symbol("nil");	
+	True = new_symbol("true"); 
 	False = new_symbol("false");
-	Nil = new_symbol("nil");	 
 }
 
 static void
@@ -103,12 +71,10 @@ add_primitive(char *name, Primitive fn, Object *env)
 void
 init_predefined(void)
 {
-	symbols = new_map(10, _symbol_key_cmp, _symbol_obj_hash);
-	entry_root(symbols);
 	_init_const_vars();
+	entry_root(symbols);
 	root_env = new_env(Nil, Nil);
 	entry_root(root_env);
-	root_env->vars = new_map(10, _env_key_cmp, _env_obj_hash);
 	_append_to_env();
 	init_primitive();
 }

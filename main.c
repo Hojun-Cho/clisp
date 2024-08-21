@@ -36,7 +36,6 @@ SExprint(Object *obj)
     CASE(INT, "%d", obj->value);
 	CASE(STRING, "\"%s\"", obj->beg);
     CASE(SYMBOL, "%s", obj->sym);
-	CASE(MAP,    "Map");
 	CASE(ENV,    "Env");
 	CASE(LAMBDA, "<lambda>");
 	CASE(FUNC,   "<func>");
