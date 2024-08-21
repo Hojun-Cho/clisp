@@ -1,5 +1,5 @@
 #define DEFAULT_OBJS_CAP 64
-#define STR_DEFAULT_LEN 64
+#define STR_DEFAULT_LEN 16
 #define SYMBOL_MAX_LEN 64
 #define STACK_SIZE 8192 * 4
 
@@ -27,8 +27,10 @@ typedef struct Slot Slot;
 
 struct Object
 {
+	int size;
 	int type;
 	union{
+		void *mem;
 		/* int */
 		int value;
 		/* cell */
@@ -41,10 +43,9 @@ struct Object
 			char *beg;
 			char *ptr;
 			char *end;
-			int fixed;
 		};
 		/* symbol */
-		char sym[SYMBOL_MAX_LEN + 1];
+		char *sym;
 		/* primitive */
 		Primitive fn;
 		/* function */

@@ -37,14 +37,6 @@ add_variable(Object *sym, Object *val, Object *env)
 	env->vars = new_acons(sym, val, vars);
 }
 
-static Object*
-_new_symbol(char *sym)
-{
-	Object *obj = new_object(SYMBOL);
-	memcpy(obj->sym, sym, strlen(sym) + 1);
-	return obj;
-}
-
 void
 add_primitive(Object *sym, Primitive fn, Object *env)
 {
@@ -55,7 +47,7 @@ add_primitive(Object *sym, Primitive fn, Object *env)
 void
 init_predefined(void)
 {
-	symbols = Nil = _new_symbol("nil");	
+	symbols = Nil = new_symbol("nil");	
 	True = new_symbol("true"); 
 	False = new_symbol("false");
 	Plus = new_symbol("+");

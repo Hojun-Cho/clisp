@@ -88,7 +88,7 @@ error(char *fmt, ...)
 static void
 _main(void)
 {
-	init_gc();
+	init_gc(3000);
 	init_predefined();
 
 	if(psetjmp(recover_stack) == 1){

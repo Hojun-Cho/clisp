@@ -82,7 +82,7 @@ _number()
 static Object*
 _string(void)
 {
-	Object *obj = new_string("", 0);
+	Object *obj = new_string("");
 	while(_lookup() != '"')
 		str_putc(obj, getchar());
 	_assert('"');
