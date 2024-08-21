@@ -7,6 +7,7 @@
 Object *True;
 Object *False;
 Object *Nil;
+Object *Plus, *Minus, *Lambda, *Car, *Cdr, *Quote;
 
 /* roots */
 Object *symbols;
@@ -44,26 +45,9 @@ _new_symbol(char *sym)
 	return obj;
 }
 
-static void
-_init_const_vars(void)
-{
-	symbols = Nil = _new_symbol("nil");	
-	True = new_symbol("true"); 
-	False = new_symbol("false");
-}
-
-static void
-_append_to_env(void)
-{
-	add_variable(True, True, root_env);
-	add_variable(False, False, root_env);
-	add_variable(Nil, Nil, root_env);
-}
-
 void
-add_primitive(char *name, Primitive fn, Object *env)
+add_primitive(Object *sym, Primitive fn, Object *env)
 {
-	Object *sym = new_symbol(name);	
 	Object *prim = new_primitve(fn);
 	add_variable(sym, prim, env);
 }
@@ -71,10 +55,20 @@ add_primitive(char *name, Primitive fn, Object *env)
 void
 init_predefined(void)
 {
-	_init_const_vars();
-	entry_root(symbols);
+	symbols = Nil = _new_symbol("nil");	
+	True = new_symbol("true"); 
+	False = new_symbol("false");
+	Plus = new_symbol("+");
+	Minus = new_symbol("-");
+	Car = new_symbol("car");
+	Cdr = new_symbol("cdr");
+	Quote = new_symbol("'");
+	Lambda = new_symbol("lambda");
+
 	root_env = new_env(Nil, Nil);
-	entry_root(root_env);
-	_append_to_env();
+	add_variable(True, True, root_env);
+	add_variable(False, False, root_env);
+	add_variable(Nil, Nil, root_env);
+
 	init_primitive();
 }

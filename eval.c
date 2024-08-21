@@ -100,7 +100,7 @@ _find(Object *env, Object *sym)
 		for(Object *c = ptr->vars; c != Nil; c = c->cdr){
 			Object *slot = c->car;
 			if(sym == slot->car)
-				return slot;
+				return slot->cdr;
 		}
 	}
 	return 0;
@@ -185,12 +185,12 @@ eval(Object *env, Object *obj)
 void
 init_primitive(void)
 {
-	add_primitive("+", _plus, root_env);
-    add_primitive("-", _minus, root_env);
-    add_primitive("lambda", _lambda, root_env);
-	add_primitive("car", _car, root_env);
-	add_primitive("quote", _quote, root_env);
-    add_primitive("cdr", _cdr, root_env);
+	add_primitive(Plus, _plus, root_env);
+    add_primitive(Minus, _minus, root_env);
+    add_primitive(Lambda, _lambda, root_env);
+	add_primitive(Car, _car, root_env);
+    add_primitive(Cdr, _cdr, root_env);
+	add_primitive(Quote, _quote, root_env);
 	/*
      *add_primitive("cons", fn_cons, root_env);
      *add_primitive("setq", fn_setq, root_env);

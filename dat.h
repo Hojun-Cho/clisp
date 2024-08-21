@@ -63,8 +63,9 @@ struct Object
 
 /* const */
 extern Object *True;
-extern Object *Nil;
 extern Object *False;
+extern Object *Nil;
+extern Object *Plus, *Minus, *Lambda, *Car, *Cdr, *Quote;
 
 /* stack */
 extern void *workspace;

@@ -1,6 +1,6 @@
  /* elem */
 void add_variable(Object *sym, Object *val, Object *env);
-void add_primitive(char *name, Primitive fn, Object *env);
+void add_primitive(Object *sym, Primitive fn, Object *env);
 void init_predefined(void);
 
 /* String */
@@ -25,7 +25,6 @@ Object* new_acons(Object *x, Object *y, Object *z);
 Object* new_env(Object *vars, Object *up);
 Object* new_primitve(Primitive fn);
 Object* new_function(Object *env, enum Obj_Type type, Object *params, Object *body);
-void entry_root(Object *obj);
 void init_gc(void);
 void gc_run(void);
 

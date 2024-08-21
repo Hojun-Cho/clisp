@@ -17,7 +17,6 @@ typedef struct
 	int len;
 	int total;
 	int using;
-	int roots;
 	Object **arr;
 }GC;
 
@@ -83,7 +82,6 @@ Object*
 new_symbol(char *sym)
 {
 	for(Object *c = symbols; c != Nil; c = c->cdr){
-		print_expr(c->car);
 		if(strcmp(sym, c->car->sym) == 0)
 			return c->car;
 	}
@@ -143,7 +141,7 @@ _search(void *ptr)
 static void
 _mark(Object *obj)
 {
-	if(IS_MARKED(obj))
+	if(obj == 0 || IS_MARKED(obj))
 		return;
 	SET_MARK(obj);
 	switch(TYPE(obj)){
@@ -177,6 +175,8 @@ _gc_mark(uintptr_t bot)
 		if(cur)
 			_mark(cur);
 	}
+	_mark(symbols);
+	_mark(root_env);
 }
 
 static void
@@ -194,15 +194,6 @@ _gc_sweep(void)
 			}
 		}
 	}
-}
-
-void
-entry_root(Object *obj)
-{
- 	uintptr_t *ptr = (uintptr_t *)stack_top;
-	ptr -= 1;
-	ptr[-gc.roots] = (uintptr_t)obj;
-	gc.roots++;
 }
 
 void
@@ -226,7 +217,6 @@ init_gc(void)
 	gc.cap = 1;
 	gc.len = 1;
 	gc.using = 0;
-	gc.roots = 0;
 	gc.total = gc.cap * DEFAULT_OBJS_CAP;
 	gc.arr = xalloc(sizeof(Object *) * gc.cap);
 	gc.arr[0] = xalloc(sizeof(Object) * DEFAULT_OBJS_CAP);
