@@ -7,23 +7,16 @@
 
 enum Obj_Type
 {
-	Obj_None,
-	Obj_Int,
-	Obj_String,
-	Obj_Cell,
-	Obj_Symbol,
-	Obj_Prim,
-	Obj_Func,
-	Obj_Lambda,
-	Obj_Macro,
-	Obj_env,
-	Obj_True,
-	Obj_False,
-	Obj_Nil,
-	Obj_Dot,
-	Obj_Cparen,
-	Obj_Map,
-	Obj_Env,
+	NONE,
+	INT,
+	STRING,
+	CELL,
+	SYMBOL,
+	PRIM,
+	FUNC,
+	LAMBDA,
+	MAP,
+	ENV,
 
 	Obj_Marked = 1 << 10,
 	Obj_Using = 1 << 16,
@@ -79,8 +72,6 @@ struct Object
 /* const */
 extern Object *True;
 extern Object *Nil;
-extern Object *Cparen;
-extern Object *Dot;
 extern Object *False;
 
 /* stack */

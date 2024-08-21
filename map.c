@@ -12,7 +12,7 @@ struct Slot
 Object*
 new_map(int cap, int (*cmp)(void*,void*), int (*hash)(Object*))
 {
-	Object *obj = new_object(Obj_Map);
+	Object *obj = new_object(MAP);
 	obj->cap = cap;
 	obj->slots = xalloc(sizeof(Slot) * obj->cap);
 	obj->cmp = cmp;

@@ -6,7 +6,7 @@
 Object*
 new_string(char *ptr, int fixed)
 {
-	Object *s = new_object(Obj_String); 
+	Object *s = new_object(STRING); 
 	int len = strlen(ptr);
 	len = len ? len : STR_DEFAULT_LEN;
 	s->ptr = s->beg = xalloc(len);

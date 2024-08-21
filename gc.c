@@ -36,13 +36,13 @@ static void
 _init_object(Object *obj)
 {
 	switch(TYPE(obj)){
-	case Obj_String:
+	case STRING:
 		free(obj->beg);
 		break;
-    case Obj_Symbol: 
+    case SYMBOL: 
 		free(obj->sym);
 		break;
-	case Obj_Map:
+	case MAP:
 		del_map(obj);
 		break;
     }
@@ -71,7 +71,7 @@ new_object(enum Obj_Type type)
 Object*
 new_int(int val)
 {
-	Object *obj = new_object(Obj_Int);
+	Object *obj = new_object(INT);
 	obj->value = val;
 	return obj;
 }
@@ -79,7 +79,7 @@ new_int(int val)
 Object*
 new_cons(Object *car, Object *cdr)
 {
-	Object *obj = new_object(Obj_Cell);
+	Object *obj = new_object(CELL);
 	obj->car = car;
 	obj->cdr = cdr;
 	return obj;
@@ -91,7 +91,7 @@ new_symbol(char *sym)
 	Object *obj = map_get(symbols, sym);
 	if(obj)
 		return obj;
-	obj = new_object(Obj_Symbol);
+	obj = new_object(SYMBOL);
 	int len = strlen(sym);
 	obj->sym = xalloc(len + 1);
 	memmove(obj->sym, sym, len + 1);
@@ -102,7 +102,7 @@ new_symbol(char *sym)
 Object*
 new_env(Object *vars, Object *up)
 {
-	Object *obj = new_object(Obj_Env);
+	Object *obj = new_object(ENV);
 	obj->vars = vars;
 	obj->up = up;
 	return obj;
@@ -118,7 +118,7 @@ new_acons(Object *x, Object *y, Object *z)
 Object*
 new_primitve(Primitive fn)
 {
-	Object *obj = new_object(Obj_Prim);
+	Object *obj = new_object(PRIM);
 	obj->fn = fn;
 	return obj;
 }
@@ -153,20 +153,20 @@ _mark(Object *obj)
 		return;
 	SET_MARK(obj);
 	switch(TYPE(obj)){
-	case Obj_Cell:
+	case CELL:
 		_mark(obj->car);
 		_mark(obj->cdr);
 		break;
-	case Obj_Func:
+	case FUNC:
 		_mark(obj->params);
 		_mark(obj->body);
 		_mark(obj->env);
 		break;
-	case Obj_Env:
+	case ENV:
 		_mark(obj->vars);
 		_mark(obj->up);
 		break;
-	case Obj_Map:
+	case MAP:
 		map_iterate(obj, _mark);
 		break;
 	}

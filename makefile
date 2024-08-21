@@ -10,7 +10,7 @@ OFILES=\
 	str.o
 
 AS=$(CC) -c
-CFLAGS=-c -Wall -g -O2
+CFLAGS=-c -Wall -g -O0
 
 all: $(NAME)
 

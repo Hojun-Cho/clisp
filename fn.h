@@ -44,4 +44,4 @@ void error_expr(char *msg, Object *obj);
 /* eval */
 Object* eval(Object *env, Object *obj);
 Object* push_env(Object *env, Object *vars, Object *args);
-
+void init_primitive(void);

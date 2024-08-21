@@ -21,12 +21,8 @@ void *stack_bot;
 static void
 SExprint(Object *obj)
 {
-	if(obj == 0){
-		printf("Nil");
-		return;
-	}
 	switch(TYPE(obj)){
-	case Obj_Cell:
+	case CELL:
 		printf("(");
 		SExprint(obj->car);
 		printf(" . ");
@@ -37,19 +33,16 @@ SExprint(Object *obj)
     case type:                                  \
         printf(__VA_ARGS__);                    \
         return
-    CASE(Obj_Int, "%d", obj->value);
-	CASE(Obj_String, "\"%s\"", obj->beg);
-    CASE(Obj_Symbol, "%s", obj->sym);
-	CASE(Obj_Map,    "Map");
-	CASE(Obj_Env,    "Env");
-    CASE(Obj_True,   "true");
-    CASE(Obj_False,  "false");
-	CASE(Obj_Lambda, "<lambda>");
-	CASE(Obj_Func,   "<func>");
-	CASE(Obj_Nil,  "Nil");
+    CASE(INT, "%d", obj->value);
+	CASE(STRING, "\"%s\"", obj->beg);
+    CASE(SYMBOL, "%s", obj->sym);
+	CASE(MAP,    "Map");
+	CASE(ENV,    "Env");
+	CASE(LAMBDA, "<lambda>");
+	CASE(FUNC,   "<func>");
 #undef CASE
     default:
-        error("SExpr=> print: Unknown type %d", TYPE(obj));
+		printf("!!error!!");
     }
 }
 

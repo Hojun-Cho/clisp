@@ -1,15 +1,20 @@
 #include "dat.h"
 #include "fn.h"
 
-static int _is_list(Object *obj);
 static Object* _eval_list(Object *env, Object *list);
+
+static int
+_is_list(Object *obj)
+{
+	return obj == Nil || TYPE(obj) == CELL;
+}
 
 static int
 _length(Object *list)
 {
 	if(list == Nil)
 		return 0;
-	if(TYPE(list) != Obj_Cell)
+	if(TYPE(list) != CELL)
 		error_expr("expected list", list);
 	return _length(list->cdr) + 1;
 }
@@ -17,76 +22,73 @@ _length(Object *list)
 static Object*
 _entry_fn(Object *env, Object *list, enum Obj_Type type)
 {
-	if(TYPE(list)!= Obj_Cell ||
-		_is_list(list->car) == 0 ||
-		TYPE(list->cdr) != Obj_Cell)
+	if(TYPE(list)!=CELL || _is_list(list->car)==0 || TYPE(list->cdr)!=CELL)
 		error_expr("malformed lambda", list);
-	for(Object *ptr = list->car; TYPE(ptr) == Obj_Cell; ptr = ptr->cdr){
-		if(TYPE(ptr->car) != Obj_Symbol)
-			error_expr("parameter is not Obj_Symbol", ptr);
+	for(Object *ptr = list->car; TYPE(ptr) == CELL; ptr = ptr->cdr){
+		if(TYPE(ptr->car) != SYMBOL)
+			error_expr("parameter is not SYMBOL", ptr);
 	}
 	Object *params = list->car;
 	Object *body = list->cdr;
 	return new_function(env, type, params, body);
 }
 
-Object*
-fn_lambda(Object *env, Object *list)
+static Object*
+_lambda(Object *env, Object *list)
 {	
-	return _entry_fn(env, list, Obj_Func);
+	return _entry_fn(env, list, FUNC);
 }
 
-Object*
-fn_plus(Object *env, Object *list)
+static Object*
+_plus(Object *env, Object *list)
 {
 	int sum = 0;
 	for(Object *p = _eval_list(env, list); p != Nil; p = p->cdr){
-		if(TYPE(p->car) != Obj_Int)
+		if(TYPE(p->car) != INT)
 			error_expr("+ take only numbers", p);
 		sum += p->car->value;
 	}
 	return new_int(sum);
 }
 
-Object*
-fn_minus(Object *env, Object *list)
+static Object*
+_minus(Object *env, Object *list)
 {
 	Object *p = _eval_list(env, list);
-	if(TYPE(p->car) != Obj_Int)
+	if(TYPE(p->car) != INT)
 		error_expr("- take only numbers", p);
 	int sum = -p->car->value;
 	p = p->cdr;
 	for(; p != Nil; p = p->cdr){
-		if(TYPE(p->car) != Obj_Int)
+		if(TYPE(p->car) != INT)
 			error_expr("- take only numbers", p);
 		sum += p->car->value;
 	}
 	return new_int(sum);
 }
 
-Object*
-fn_quote(Object *env, Object *list)
+static Object*
+_quote(Object *env, Object *list)
 {
 	if(_length(list) != 1)
 		error_expr("Malformed quote", list);
 	return list->car;
 }
 
-Object*
-fn_car(Object *env, Object *list)
+static Object*
+_car(Object *env, Object *list)
 {
 	Object *args = _eval_list(env, list);
-	if(TYPE(args->car) != Obj_Cell
-		|| TYPE(args->cdr) != Obj_Nil)
+	if(TYPE(args->car) != CELL || args->cdr != Nil)
 		error_expr("Malformed car", list);
 	return args->car->car;
 }
 
-Object*
-fn_cdr(Object *env, Object *list)
+static Object*
+_cdr(Object *env, Object *list)
 {
 	Object *args = _eval_list(env, list);
-	if(TYPE(args->car) != Obj_Cell)
+	if(TYPE(args->car) != CELL)
 		error_expr("Malformed cdr", list);
 	return args->car->cdr;
 }
@@ -113,18 +115,12 @@ _progn(Object *env, Object *list)
 	return r;
 }
 
-static int
-_is_list(Object *obj)
-{
-	return obj == Nil || TYPE(obj) == Obj_Cell;
-}
-
 static Object*
 _eval_list(Object *env, Object *list)
 {
 	if(list == Nil)
 		return Nil;
-	if(TYPE(list) != Obj_Cell)
+	if(TYPE(list) != CELL)
 		error_expr("type is not list", list);
 	Object *car = eval(env, list->car);
 	Object *cdr = _eval_list(env, list->cdr);
@@ -147,9 +143,9 @@ _apply(Object *env, Object *fn, Object *args)
 	if(_is_list(args) == 0)
 		error_expr("argements is not list", args);
 	switch(TYPE(fn)){
-	case Obj_Prim:
+	case PRIM:
 		return fn->fn(env, args);
-	case Obj_Func:{
+	case FUNC:{
 			Object *elist = _eval_list(env, args);
 			return _apply_func(env, fn, elist);
 		}
@@ -161,27 +157,52 @@ Object*
 eval(Object *env, Object *obj)
 {
 	switch(TYPE(obj)){
-	case Obj_Int:
-	case Obj_Prim:
-	case Obj_Func:
-	case Obj_True:
-	case Obj_Nil:
-	case Obj_String:
+	case INT:
+	case PRIM:
+	case FUNC:
+	case STRING:
 		return obj;
-	case Obj_Symbol:{
+	case SYMBOL:{
 			Object *bind = _find(env, obj);
 			if(bind == 0)
 				error("undefined symbol %s", obj->sym);
 			return bind;
 		}
-	case Obj_Cell:{
+	case CELL:{
 			Object *fn = obj->car;
 			fn = eval(env, fn);
-			if(TYPE(fn) != Obj_Prim && TYPE(fn) != Obj_Func)
+			if(TYPE(fn) != PRIM && TYPE(fn) != FUNC)
 				error_expr("expected function", obj);
 			Object *args = obj->cdr;
 			return _apply(env, fn, args);
 		}
 	}
 	error_expr("can't evaulate Expr", obj);
+}
+
+void
+init_primitive(void)
+{
+	add_primitive("+", _plus, root_env);
+    add_primitive("-", _minus, root_env);
+    add_primitive("lambda", _lambda, root_env);
+	add_primitive("car", _car, root_env);
+	add_primitive("quote", _quote, root_env);
+    add_primitive("cdr", _cdr, root_env);
+	/*
+     *add_primitive("cons", fn_cons, root_env);
+     *add_primitive("setq", fn_setq, root_env);
+     *add_primitive("setcar", fn_setcar, root_env);
+     *add_primitive("while", fn_while, root_env);
+     *add_primitive("gensym", fn_gensym, root_env);
+	 *add_primitive("<", fn_lt, root_env);
+     *add_primitive("define", fn_define, root_env);
+     *add_primitive("defun", fn_defun, root_env);
+     *add_primitive("defmacro", fn_defmacro, root_env);
+     *add_primitive("macroexpand", fn_macroexpand, root_env);
+     *add_primitive("if", fn_if, root_env);
+     *add_primitive("=", fn_num_eq, root_env);
+     *add_primitive("eq", fn_eq, root_env);
+     *add_primitive("println", fn_println, root_env);
+	 */
 }
