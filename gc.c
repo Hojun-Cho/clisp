@@ -7,7 +7,6 @@
 #include <assert.h>
 
 #define OBJ_SIZE (sizeof(int)*2)
-#define ALIGN (sizeof(int))
 #define IS_MARKED(x) ((x)->type & Obj_Marked)
 #define SET_MARK(x) ((x)->type |=  Obj_Marked)
 #define UNSET_MARK(x) ((x)->type &= (~Obj_Marked))
@@ -45,7 +44,6 @@ _new(enum Obj_Type type, int size)
 {
 	if(size < sizeof(void*)) size=sizeof(void*);
 	size += OBJ_SIZE;
-	if(size % ALIGN) size += ALIGN - size % ALIGN; 
 	assert(size < gc.total);
 
 	uint8_t *cur = gc.beg;
@@ -58,8 +56,6 @@ _new(enum Obj_Type type, int size)
 				break;
 		}
 		if(i==size) break;
-		else if(i < ALIGN) i = 0;
-		else if(i > ALIGN) i = ALIGN - i % ALIGN;
 		cur += i;
 		cur += *(int*)cur;
 	}
@@ -194,7 +190,6 @@ gc_run(void)
 void
 init_gc(int size)
 {
-	if(size % ALIGN) size += ALIGN - size % ALIGN; 
 	gc.total = size;
 	gc.using = 0;
 	uint8_t *ptr = gc.beg = xalloc(size);
