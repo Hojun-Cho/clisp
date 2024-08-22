@@ -6,12 +6,18 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define DEFAULT_OBJ_SLOTS 64
 #define OBJ_SIZE (sizeof(int)*2)
 #define IS_MARKED(x) ((x)->type & Obj_Marked)
 #define SET_MARK(x) ((x)->type |=  Obj_Marked)
 #define UNSET_MARK(x) ((x)->type &= (~Obj_Marked))
-#define IS_USING(x) ((x)->type & Obj_Using)
-#define SET_USING(x) ((x)->type |= Obj_Using)
+
+typedef struct OList OList;
+struct OList
+{
+	Object *arr[DEFAULT_OBJ_SLOTS];
+	OList *next;
+};
 
 typedef struct
 {
@@ -19,6 +25,7 @@ typedef struct
 	void *end;
 	int total;
 	int using;
+	OList *objs;
 }GC;
 
 GC gc;
@@ -32,11 +39,24 @@ xalloc(int sz)
 	return res;
 }
 
-static void
-_init_object(Object *obj)
+static Object**
+_entry(Object *obj)
 {
-	memset(obj, 0, obj->size);
-	gc.using -= obj->size;
+	OList *last = 0;
+	OList *p = gc.objs;
+	while(p){
+		for(int i = 0; i < sizeof(p->arr); ++i){
+			if(p->arr[i] == 0){
+				p->arr[i] = obj;
+				return &p->arr[i];
+			}
+		}
+		last = p;
+		p = p->next;
+	}
+	p = last->next = xalloc(sizeof(OList));
+	p->arr[0] = obj;
+	return &p->arr[0];
 }
 
 static Object*
@@ -145,11 +165,6 @@ new_symbol(char *sym)
 	return obj;
 }
 
-static Object*
-_search(void *ptr)
-{
-}
-
 static void
 _mark(Object *obj)
 {
@@ -173,20 +188,6 @@ _mark(Object *obj)
 	}
 }
 
-static void
-_gc_mark(uintptr_t bot)
-{}
-
-static void
-_gc_sweep(void)
-{
-}
-
-void
-gc_run(void)
-{
-}
-
 void
 init_gc(int size)
 {
@@ -194,4 +195,5 @@ init_gc(int size)
 	gc.using = 0;
 	uint8_t *ptr = gc.beg = xalloc(size);
 	gc.end = &ptr[size];
+	gc.objs = xalloc(sizeof(OList));
 }
