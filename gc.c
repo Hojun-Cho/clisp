@@ -272,6 +272,7 @@ _gc_mark(uintptr_t bot)
 void
 gc_run(void)
 {
+	psetjmp(root_stack); /* push current register */
 	printf("GC before=> total:%d, using:%d, remain:%d\n", 
 		gc.total, gc.using, gc.total - gc.using);
 	uintptr_t *ptr = (uintptr_t *)workspace;

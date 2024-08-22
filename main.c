@@ -5,14 +5,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define USING(x) ({void *xxx = (x);})
-
-extern int psetjmp(void*);
-extern void plongjmp(void*, int);
-
-enum { REG_RIP = 7, REG_RSP = 6, };
-typedef void *jmp_buf[10];
-
 jmp_buf root_stack, recover_stack;
 void *workspace;
 void *stack_top;
@@ -94,10 +86,6 @@ _main(void)
 		skip_line();
 	}
 	for(;;){
-	for(Object **c = symbols; c != Nil; c = (*c)->cdr){
-		printf("%s\n", (*((*c)->car))->sym);
-	}
-		gc_run();
 		Object **obj = next_expr();
 		obj = eval(root_env, obj);
 		print_expr(obj);
@@ -109,7 +97,7 @@ main(int argc, char *argv[])
 {
 	uint8_t *ptr = workspace = xalloc(STACK_SIZE);
 	/* sub 8 because alignment of 16 */
-	root_stack[REG_RSP] = ptr + STACK_SIZE - (64 - 8);
+	root_stack[REG_RSP] = ptr + STACK_SIZE - (256 - 8);
 	root_stack[REG_RIP] = _main;
 	stack_bot = ptr;
 	stack_top = &ptr[STACK_SIZE];
