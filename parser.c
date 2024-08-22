@@ -11,7 +11,7 @@ _assert(char x)
 {
 	char y = getchar();
 	if(x != y)
-		panic("expected '%c', actual '%c'", x, y);
+		error("expected '%c', actual '%c'", x, y);
 }
 
 static char
