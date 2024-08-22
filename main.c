@@ -85,6 +85,7 @@ _main(void)
 	if(psetjmp(recover_stack) == 1){
 		skip_line();
 	}
+
 	for(;;){
 		Object **obj = next_expr();
 		obj = eval(root_env, obj);

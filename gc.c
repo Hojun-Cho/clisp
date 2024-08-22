@@ -85,6 +85,8 @@ _new(int size, enum Obj_Type type)
 {
 	size = _alignment(size + OBJ_SIZE);
 	assert(size < gc.total);
+	if(gc.using + size > gc.total/2) gc_run();
+	assert(gc.using + size < gc.total);
 
 	uintptr_t cur = gc.beg;
 	while(1){
