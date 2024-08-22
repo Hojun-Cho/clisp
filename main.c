@@ -19,34 +19,33 @@ void *stack_top;
 void *stack_bot;
 
 static void
-SExprint(Object *obj)
+SExprint(Object **obj)
 {
-	switch(TYPE(obj)){
+	switch(TYPE(*obj)){
 	case CELL:
 		printf("(");
-		SExprint(obj->car);
+		SExprint((*obj)->car);
 		printf(" . ");
-		SExprint(obj->cdr);
+		SExprint((*obj)->cdr);
 		printf(")");
 		return;
 #define CASE(type, ...)                         \
-    case type:                                  \
-        printf(__VA_ARGS__);                    \
-        return
-    CASE(INT, "%d", obj->value);
-	CASE(STRING, "\"%s\"", obj->beg);
-    CASE(SYMBOL, "%s", obj->sym);
+	case type:                                  \
+		printf(__VA_ARGS__);                    \
+		return
+	CASE(INT, "%ld", (*obj)->value);
+	CASE(SYMBOL, "%s", (*obj)->sym);
 	CASE(ENV,    "Env");
 	CASE(LAMBDA, "<lambda>");
 	CASE(FUNC,   "<func>");
 #undef CASE
-    default:
+	default:
 		printf("!!error!!");
-    }
+	}
 }
 
 void
-print_expr(Object *obj)
+print_expr(Object **obj)
 {
 	SExprint(obj);
 	printf("\n");
@@ -64,7 +63,7 @@ panic(char *fmt, ...)
 }
 
 void
-error_expr(char *msg, Object *obj)
+error_expr(char *msg, Object **obj)
 {
 	fprintf(stderr, "Error => %s\n", msg);
 	fprintf(stderr, "====== Expr ======\n");
@@ -95,7 +94,11 @@ _main(void)
 		skip_line();
 	}
 	for(;;){
-		Object *obj = next_expr();
+	for(Object **c = symbols; c != Nil; c = (*c)->cdr){
+		printf("%s\n", (*((*c)->car))->sym);
+	}
+		gc_run();
+		Object **obj = next_expr();
 		obj = eval(root_env, obj);
 		print_expr(obj);
 	}
