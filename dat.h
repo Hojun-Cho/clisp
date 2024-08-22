@@ -1,5 +1,5 @@
 #define DEFAULT_OBJS_CAP 64
-#define STR_DEFAULT_LEN 64
+#define STR_DEFAULT_LEN 16
 #define SYMBOL_MAX_LEN 64
 #define STACK_SIZE 8192 * 4
 
@@ -9,7 +9,6 @@ enum Obj_Type
 {
 	NONE,
 	INT,
-	STRING,
 	CELL,
 	SYMBOL,
 	PRIM,
@@ -22,50 +21,44 @@ enum Obj_Type
 };
 
 typedef struct Object Object;
-typedef Object* (*Primitive)(Object *env, Object *args);
+typedef Object** (*Primitive)(Object **env, Object **args);
 typedef struct Slot Slot;
 
 struct Object
 {
+	int size;
 	int type;
 	union{
 		/* int */
-		int value;
+		long value;
 		/* cell */
 		struct{
-			Object *car;
-			Object *cdr;
-		};
-		/* string */
-		struct{
-			char *beg;
-			char *ptr;
-			char *end;
-			int fixed;
+			Object **car;
+			Object **cdr;
 		};
 		/* symbol */
-		char sym[SYMBOL_MAX_LEN + 1];
+		char *sym;
 		/* primitive */
 		Primitive fn;
 		/* function */
 		struct{
-			Object *params;
-			Object *body;
-			Object *env;
+			Object **params;
+			Object **body;
+			Object **env;
 		};
-		/* frame */ 
+		/* env */ 
 		struct{
-			Object *vars;
-			Object *up;
+			Object **vars;
+			Object **up;
 		};
 	};
 };
 
 /* const */
-extern Object *True;
-extern Object *False;
-extern Object *Nil;
-extern Object *Plus, *Minus, *Lambda, *Car, *Cdr, *Quote;
+extern Object** True;
+extern Object** False;
+extern Object** Nil;
+extern Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote;
 
 /* stack */
 extern void *workspace;
@@ -73,5 +66,5 @@ extern void *stack_top;
 extern void *stack_bot;
 
 /* root objects */
-extern Object *symbols;
-extern Object *root_env;
+extern Object **symbols;
+extern Object **root_env;

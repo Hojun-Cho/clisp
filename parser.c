@@ -52,10 +52,10 @@ skip_line(void)
 	}
 }
 
-static Object* _lpar_list(void);
-static Object* _list(void);
+static Object** _lpar_list(void);
+static Object** _list(void);
 
-static Object*
+static Object**
 _symbol(char c)
 {
 	char buf[SYMBOL_MAX_LEN + 1] = {0,};
@@ -70,41 +70,27 @@ _symbol(char c)
 	return new_symbol(buf);
 }
 
-static int
+static long
 _number()
 {
-	int val = getchar() - '0';
+	long val = getchar() - '0';
 	while(isdigit(_lookup()))
 		val = val * 10 + (getchar() - '0');
 	return val;
 }
 
-static Object*
-_string(void)
-{
-	Object *obj = new_string("", 0);
-	while(_lookup() != '"')
-		str_putc(obj, getchar());
-	_assert('"');
-	return obj;	
-}
-
-static Object*
+static Object**
 _quote(void)
 {
-	Object *car = new_symbol("quote");
-	Object *ccdr = _list();
-	Object *cdr = new_cons(ccdr, Nil);
+	Object **car = Quote;
+	Object **ccdr = _list();
+	Object **cdr = new_cons(ccdr, Nil);
 	return new_cons(car, cdr);
 }
 
-static Object*
+static Object**
 _atom(char c)
 {
-	if(c == '\"'){
-		getchar();
-		return _string();
-	}
 	if(isdigit(c))
 		return new_int(_number());
 	if(c == '-'){
@@ -119,10 +105,10 @@ _atom(char c)
 	error("bad char in list '%c'", c);
 }
 
-static Object*
+static Object**
 _lpar_list(void)
 {
-	Object *car = Nil, *cdr = Nil;
+	Object **car = Nil, **cdr = Nil;
 	char c = _slookup();
 	switch(c){
 	case '\'':
@@ -145,7 +131,7 @@ _lpar_list(void)
 	return new_cons(car ,cdr);
 }
 
-static Object*
+static Object**
 _list(void)
 {
 	char c = _slookup();
@@ -155,7 +141,7 @@ _list(void)
 		return _quote();
 	case '(':{
 		getchar();
-		Object *res = _lpar_list();
+		Object **res = _lpar_list();
 		_slookup();
 		_assert(')');
 		return res;
@@ -164,7 +150,7 @@ _list(void)
 	return _atom(c);
 }
 
-Object*
+Object**
 next_expr(void)
 {
 	return _list();

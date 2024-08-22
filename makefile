@@ -1,12 +1,11 @@
 NAME=lisp
 OFILES=\
 	jmp.o\
-	elem.o\
+	env.o\
 	eval.o\
 	gc.o\
 	main.o\
-	parser.o\
-	str.o
+	parser.o
 
 AS=$(CC) -c
 CFLAGS=-c -Wall -g -O0
