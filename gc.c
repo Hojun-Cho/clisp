@@ -322,6 +322,7 @@ init_predefined(void)
 	Quote = new_symbol("'");
 	Cons = new_symbol("cons");
 	Define = new_symbol("define");
+	Setq = new_symbol("setq");
 
 	root_env = new_env(Nil, Nil);
 	add_variable(True, True, root_env);

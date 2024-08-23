@@ -9,6 +9,18 @@ _is_list(Object **obj)
 	return obj == Nil || TYPE(*obj) == CELL;
 }
 
+Object**
+_find(Object **env, Object **sym)
+{
+	for(Object **p=env; p!=Nil; p=(*p)->up){
+		for(Object **c = (*p)->vars; c!=Nil; c=(*c)->cdr){
+			if(sym == (*(*c)->car)->car)
+				return (*c)->car;
+		}
+	}
+	return 0;
+}
+
 static int
 _length(Object **list)
 {
@@ -90,6 +102,20 @@ _define(Object **env, Object **list)
 }
 
 static Object**
+_setq(Object **env, Object **list)
+{
+	if(_length(list) != 2 || TYPE(*(*list)->car) != SYMBOL)
+		error_expr("Malformed setq", list);
+	Object **var = _find(env, (*list)->car);
+	if(var == 0)
+		error("Not exist %d\n", (*(*list)->car)->sym);
+	Object **val = (*(*list)->cdr)->car;
+	val = eval(env, val);
+	(*var)->cdr = val;
+	return val;
+}
+
+static Object**
 _quote(Object **env, Object **list)
 {
 	if(_length(list) != 1)
@@ -113,18 +139,6 @@ _cdr(Object **env, Object **list)
 	if(TYPE(*(*args)->car) != CELL)
 		error_expr("Malformed cdr", list);
 	return (*(*args)->car)->cdr;
-}
-
-Object**
-_find(Object **env, Object **sym)
-{
-	for(Object **p=env; p!=Nil; p=(*p)->up){
-		for(Object **c = (*p)->vars; c!=Nil; c=(*c)->cdr){
-			if(sym == (*(*c)->car)->car)
-				return (*c)->car;
-		}
-	}
-	return 0;
 }
 
 static Object**
@@ -213,8 +227,8 @@ init_primitive(void)
 	add_primitive(Quote, _quote, root_env);
     add_primitive(Cons, _cons, root_env);
 	add_primitive(Define, _define, root_env);
+    add_primitive(Setq, _setq, root_env);
 	/*
-     *add_primitive("setq", fn_setq, root_env);
      *add_primitive("setcar", fn_setcar, root_env);
      *add_primitive("while", fn_while, root_env);
      *add_primitive("gensym", fn_gensym, root_env);

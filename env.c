@@ -7,7 +7,7 @@
 Object** True;
 Object** False;
 Object** Nil;
-Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define;
+Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define, **Setq;
 
 /* roots */
 Object** symbols;

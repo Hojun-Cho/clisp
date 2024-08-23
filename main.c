@@ -20,16 +20,32 @@ SExprint(Object **obj)
 		printf(" . ");
 		SExprint((*obj)->cdr);
 		printf(")");
-		return;
-#define CASE(type, ...)                         \
-	case type:                                  \
-		printf(__VA_ARGS__);                    \
-		return
-	CASE(INT, "%ld", (*obj)->value);
-	CASE(SYMBOL, "%s", (*obj)->sym);
-	CASE(ENV,    "Env");
-	CASE(LAMBDA, "<lambda>");
-	CASE(FUNC,   "<func>");
+		break;
+	case INT:
+		printf("%ld", (*obj)->value);
+		break;
+	case SYMBOL:
+		printf("%s", (*obj)->sym);
+		break;
+	case ENV:
+		printf("<");
+		for(Object **c = (*obj)->vars; c!=Nil; c=(*c)->cdr){
+			printf("'%s', ", (*(*(*c)->car)->car)->sym);
+		}
+		printf(">");
+		break;
+	case LAMBDA:
+		printf("<lambda>");
+		goto func;
+	case FUNC:
+		printf("<func>");
+func:
+		printf("<");
+		SExprint((*obj)->params);
+		SExprint((*obj)->body);
+		SExprint((*obj)->env);
+		printf(">");
+		break;
 #undef CASE
 	default:
 		printf("!!error!!");
@@ -87,10 +103,6 @@ _main(void)
 	}
 
 	for(;;){
-		for(Object **c = symbols; c != Nil; c = (*c)->cdr){
-				printf("%s\n", (*((*c)->car))->sym);
-		}
-
 		Object **obj = next_expr();
 		obj = eval(root_env, obj);
 		print_expr(obj);

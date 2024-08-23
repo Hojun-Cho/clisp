@@ -65,7 +65,7 @@ struct Object
 extern Object** True;
 extern Object** False;
 extern Object** Nil;
-extern Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define;
+extern Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define, **Setq;
 
 /* stack */
 extern void *workspace;
