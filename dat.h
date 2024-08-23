@@ -66,11 +66,6 @@ extern Object** False;
 extern Object** Nil;
 extern Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define, **Setq;
 
-/* stack */
-extern void *workspace;
-extern void *stack_top;
-extern void *stack_bot;
-
 /* root objects */
 extern Object **symbols;
 extern Object **root_env;

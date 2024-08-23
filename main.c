@@ -7,9 +7,6 @@
 #include <setjmp.h>
 
 jmp_buf  recover_stack;
-void *workspace;
-void *stack_top;
-void *stack_bot;
 
 static void
 SExprint(Object **obj)
@@ -76,7 +73,7 @@ error_expr(char *msg, Object **obj)
 {
 	fprintf(stderr, "Error => %s\n", msg);
 	fprintf(stderr, "====== Expr ======\n");
-	/*print_expr(obj);*/
+	print_expr(obj);
 	longjmp(recover_stack, 1);
 }
 
@@ -93,12 +90,12 @@ error(char *fmt, ...)
 	longjmp(recover_stack, 1);
 }
 
-static void
-_main(void)
+int
+main(int argc, char *argv[])
 {
 	init_gc(3000);
 	init_predefined();
-
+	
 	if(setjmp(recover_stack) == 1){
 		skip_line();
 	}
@@ -107,11 +104,4 @@ _main(void)
 		obj = eval(root_env, obj);
 		print_expr(obj);
 	}
-}
-
-int
-main(int argc, char *argv[])
-{
-	stack_top=&argc;
-	_main();
 }

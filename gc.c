@@ -13,6 +13,10 @@
 #define IS_MARKED(x) ((x)->type & Obj_Marked)
 #define SET_MARK(x) ((x)->type |=  Obj_Marked)
 #define UNSET_MARK(x) ((x)->type &= (~Obj_Marked))
+#define SET_SP(addr) {\
+	uintptr_t _lololololol_ = 0;\
+	addr = (uintptr_t)&_lololololol_;\
+	}
 
 typedef struct OList OList;
 struct OList
@@ -28,6 +32,9 @@ typedef struct
 	int total;
 	int using;
 	OList *objs;
+	uintptr_t top;
+	uintptr_t bot;
+	OList roots;
 }GC;
 
 GC gc;
@@ -86,7 +93,6 @@ _new(int size, enum Obj_Type type)
 {
 	size = _alignment(size + OBJ_SIZE);
 	assert(size < gc.total);
-	stack_bot = &size;
 	if(gc.using + size > gc.total/2) gc_run();
 	assert(gc.using + size < gc.total);
 
@@ -257,30 +263,29 @@ _find(uintptr_t addr)
 }
 
 static void
-_gc_mark(uintptr_t bot)
+_gc_mark(void)
 {
-	printf("%p ~ %p\n", bot, stack_top);
-	for(uintptr_t ptr = bot;
-		ptr < (uintptr_t)stack_top;
+	SET_SP(gc.bot);
+	_mark(*symbols);
+	_mark(*root_env);
+	for(uintptr_t ptr = gc.bot;
+		ptr < gc.top;
 		ptr += sizeof(uintptr_t))
 	{
 		Object *cur = _find((uintptr_t)*(void**)ptr);
 		if(cur)
 			_mark(cur);
 	}
-	_mark(*root_env);
-	_mark(*symbols);
 }
 
 void
 gc_run(void)
 {
 	jmp_buf tmp;
-	int x = 10;
 	setjmp(tmp); /* push current register */
-	printf("GC before=> total:%d, using:%d, remain:%d\n", 
+	printf("GC before=> total:%d, using:%d, remain:%d\n",
 		gc.total, gc.using, gc.total - gc.using);
-	_gc_mark((uintptr_t)&x);
+	_gc_mark(); 
 	_gc_sweep();
 	printf("GC after=> total:%d, using:%d, remain:%d\n", 
 		gc.total, gc.using, gc.total - gc.using);
@@ -289,6 +294,8 @@ gc_run(void)
 void
 init_gc(int size)
 {
+	SET_SP(gc.top);
+	SET_SP(gc.bot);
 	size = _alignment(size);
 	gc.total = size;
 	gc.using = 0;
