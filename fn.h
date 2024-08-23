@@ -29,3 +29,9 @@ void error_expr(char *msg, Object **obj);
 Object** eval(Object **env, Object **obj);
 Object** push_env(Object **env, Object **vars, Object **args);
 void init_primitive(void);
+
+/* bin */
+Bin* new_bin(int size, int n);
+void* bin_alloc(Bin *bin);
+void bin_free(Bin *bin, void *);
+

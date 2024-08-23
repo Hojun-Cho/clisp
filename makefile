@@ -1,5 +1,6 @@
 NAME=lisp
 OFILES=\
+	bin.o\
 	env.o\
 	eval.o\
 	gc.o\

@@ -21,11 +21,12 @@ enum Obj_Type
 };
 
 enum
-{ 
+{
 	REG_RIP = 7,
 	REG_RSP = 6,
 };
 
+typedef struct Bin Bin;
 typedef struct Object Object;
 typedef Object** (*Primitive)(Object **env, Object **args);
 typedef struct Slot Slot;
