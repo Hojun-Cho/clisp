@@ -33,6 +33,12 @@ push_env(Object **env, Object **vars, Object **args)
 void
 add_variable(Object **sym, Object **val, Object **env)
 {
+	for(Object **c = (*env)->vars; c!=Nil; c=(*c)->cdr){
+		if(sym == (*(*c)->car)->car){
+			(*(*c)->car)->cdr = val;
+			return;
+		}
+	}
 	Object **vars = (*env)->vars;
 	(*env)->vars = new_acons(sym, val, vars);
 }
