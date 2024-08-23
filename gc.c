@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
+#include <setjmp.h>
 
 #define ALIGN (sizeof(int) * 2)
 #define OBJ_SIZE ALIGN
@@ -85,6 +86,7 @@ _new(int size, enum Obj_Type type)
 {
 	size = _alignment(size + OBJ_SIZE);
 	assert(size < gc.total);
+	stack_bot = &size;
 	if(gc.using + size > gc.total/2) gc_run();
 	assert(gc.using + size < gc.total);
 
@@ -99,6 +101,7 @@ _new(int size, enum Obj_Type type)
 	Object *obj = (Object*)cur;
 	obj->size = size;
 	obj->type = type;
+	printf("%p allocated %d byte\n", obj, obj->size);
 	return obj;
 }
 
@@ -256,9 +259,7 @@ _find(uintptr_t addr)
 static void
 _gc_mark(uintptr_t bot)
 {
-	if(bot < (uintptr_t)stack_bot){
-		panic("out range");
-	}
+	printf("%p ~ %p\n", bot, stack_top);
 	for(uintptr_t ptr = bot;
 		ptr < (uintptr_t)stack_top;
 		ptr += sizeof(uintptr_t))
@@ -274,13 +275,12 @@ _gc_mark(uintptr_t bot)
 void
 gc_run(void)
 {
-	psetjmp(root_stack); /* push current register */
+	jmp_buf tmp;
+	int x = 10;
+	setjmp(tmp); /* push current register */
 	printf("GC before=> total:%d, using:%d, remain:%d\n", 
 		gc.total, gc.using, gc.total - gc.using);
-	uintptr_t *ptr = (uintptr_t *)workspace;
-	while(*ptr == 0)
-		ptr++;
-	_gc_mark((uintptr_t)ptr);
+	_gc_mark((uintptr_t)&x);
 	_gc_sweep();
 	printf("GC after=> total:%d, using:%d, remain:%d\n", 
 		gc.total, gc.using, gc.total - gc.using);

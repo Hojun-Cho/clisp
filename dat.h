@@ -26,7 +26,6 @@ enum
 	REG_RSP = 6,
 };
 
-typedef void *jmp_buf[10];
 typedef struct Object Object;
 typedef Object** (*Primitive)(Object **env, Object **args);
 typedef struct Slot Slot;
@@ -75,6 +74,3 @@ extern void *stack_bot;
 /* root objects */
 extern Object **symbols;
 extern Object **root_env;
-
-/* stack */
-extern jmp_buf root_stack, recover_stack;
