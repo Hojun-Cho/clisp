@@ -29,6 +29,3 @@ void error_expr(char *msg, Object **obj);
 Object** eval(Object **env, Object **obj);
 Object** push_env(Object **env, Object **vars, Object **args);
 void init_primitive(void);
-
-extern int psetjmp(void*);
-extern void plongjmp(void*, int);

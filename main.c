@@ -4,11 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <setjmp.h>
 
-jmp_buf root_stack, recover_stack;
-void *workspace;
-void *stack_top;
-void *stack_bot;
+jmp_buf  recover_stack;
 
 static void
 SExprint(Object **obj)
@@ -76,7 +74,7 @@ error_expr(char *msg, Object **obj)
 	fprintf(stderr, "Error => %s\n", msg);
 	fprintf(stderr, "====== Expr ======\n");
 	print_expr(obj);
-	plongjmp(recover_stack, 1);
+	longjmp(recover_stack, 1);
 }
 
 void
@@ -89,34 +87,21 @@ error(char *fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	fprintf(stderr, "\n");
-	plongjmp(recover_stack, 1);
-}
-
-static void
-_main(void)
-{
-	init_gc(3000);
-	init_predefined();
-
-	if(psetjmp(recover_stack) == 1){
-		skip_line();
-	}
-
-	for(;;){
-		Object **obj = next_expr();
-		obj = eval(root_env, obj);
-		print_expr(obj);
-	}
+	longjmp(recover_stack, 1);
 }
 
 int
 main(int argc, char *argv[])
 {
-	uint8_t *ptr = workspace = xalloc(STACK_SIZE);
-	/* sub 8 because alignment of 16 */
-	root_stack[REG_RSP] = ptr + STACK_SIZE - (256 - 8);
-	root_stack[REG_RIP] = _main;
-	stack_bot = ptr;
-	stack_top = &ptr[STACK_SIZE];
-	plongjmp(root_stack, 0);
+	init_gc(3000);
+	init_predefined();
+	
+	if(setjmp(recover_stack) == 1){
+		skip_line();
+	}
+	for(;;){
+		Object **obj = next_expr();
+		obj = eval(root_env, obj);
+		print_expr(obj);
+	}
 }
