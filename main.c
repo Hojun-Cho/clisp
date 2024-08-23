@@ -9,26 +9,26 @@
 jmp_buf  recover_stack;
 
 static void
-SExprint(Object **obj)
+SExprint(Object *obj)
 {
-	switch(TYPE(*obj)){
+	switch(TYPE(obj)){
 	case CELL:
 		printf("(");
-		SExprint((*obj)->car);
+		SExprint(obj->car);
 		printf(" . ");
-		SExprint((*obj)->cdr);
+		SExprint(obj->cdr);
 		printf(")");
 		break;
 	case INT:
-		printf("%ld", (*obj)->value);
+		printf("%ld", obj->value);
 		break;
 	case SYMBOL:
-		printf("%s", (*obj)->sym);
+		printf("%s", obj->sym);
 		break;
 	case ENV:
 		printf("<");
-		for(Object **c = (*obj)->vars; c!=Nil; c=(*c)->cdr){
-			printf("'%s', ", (*(*(*c)->car)->car)->sym);
+		for(Object *c = obj->vars; c!=Nil; c=c->cdr){
+			printf("'%s', ", c->car->car->sym);
 		}
 		printf(">");
 		break;
@@ -39,9 +39,9 @@ SExprint(Object **obj)
 		printf("<func>");
 func:
 		printf("<");
-		SExprint((*obj)->params);
-		SExprint((*obj)->body);
-		SExprint((*obj)->env);
+		SExprint(obj->params);
+		SExprint(obj->body);
+		SExprint(obj->env);
 		printf(">");
 		break;
 #undef CASE
@@ -51,7 +51,7 @@ func:
 }
 
 void
-print_expr(Object **obj)
+print_expr(Object *obj)
 {
 	SExprint(obj);
 	printf("\n");
@@ -69,7 +69,7 @@ panic(char *fmt, ...)
 }
 
 void
-error_expr(char *msg, Object **obj)
+error_expr(char *msg, Object *obj)
 {
 	fprintf(stderr, "Error => %s\n", msg);
 	fprintf(stderr, "====== Expr ======\n");
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 		skip_line();
 	}
 	for(;;){
-		Object **obj = next_expr();
+		Object *obj = next_expr();
 		obj = eval(root_env, obj);
 		print_expr(obj);
 	}

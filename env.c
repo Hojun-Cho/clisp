@@ -4,25 +4,25 @@
 #include <stdlib.h>
 
 /* Const Variables */
-Object** True;
-Object** False;
-Object** Nil;
-Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define, **Setq;
+Object* True;
+Object* False;
+Object* Nil;
+Object* Plus, *Minus, *Lambda, *Car, *Cdr, *Quote, *Cons, *Define, *Setq;
 
 /* roots */
-Object** symbols;
-Object** root_env;
+Object* symbols;
+Object* root_env;
 
 /* env */
-Object**
-push_env(Object **env, Object **vars, Object **args)
+Object*
+push_env(Object *env, Object *vars, Object *args)
 {
-	Object **map = Nil;
-	for(;TYPE(*vars)==CELL; vars=(*vars)->cdr,args=(*args)->cdr){
-		if(TYPE(*args) != CELL)
+	Object *map = Nil;
+	for(;TYPE(vars)==CELL; vars=vars->cdr,args=args->cdr){
+		if(TYPE(args) != CELL)
 			error("Can't apply function argment dose not match");
-		Object **sym = (*vars)->car;
-		Object **arg = (*args)->car;
+		Object *sym = vars->car;
+		Object *arg = args->car;
 		map = new_acons(sym, arg, map);
 	}
 	if(vars != Nil)
@@ -31,21 +31,21 @@ push_env(Object **env, Object **vars, Object **args)
 }
 
 void
-add_variable(Object **sym, Object **val, Object **env)
+add_variable(Object *sym, Object *val, Object *env)
 {
-	for(Object **c = (*env)->vars; c!=Nil; c=(*c)->cdr){
-		if(sym == (*(*c)->car)->car){
-			(*(*c)->car)->cdr = val;
+	for(Object *c = env->vars; c!=Nil; c=c->cdr){
+		if(sym == c->car->car){
+			c->car->cdr = val;
 			return;
 		}
 	}
-	Object **vars = (*env)->vars;
-	(*env)->vars = new_acons(sym, val, vars);
+	Object *vars = env->vars;
+	env->vars = new_acons(sym, val, vars);
 }
 
 void
-add_primitive(Object **sym, Primitive fn, Object **env)
+add_primitive(Object *sym, Primitive fn, Object *env)
 {
-	Object **prim = new_primitve(fn);
+	Object *prim = new_primitve(fn);
 	add_variable(sym, prim, env);
 }

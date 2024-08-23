@@ -28,7 +28,7 @@ enum
 
 typedef struct Bin Bin;
 typedef struct Object Object;
-typedef Object** (*Primitive)(Object **env, Object **args);
+typedef Object* (*Primitive)(Object *env, Object *args);
 typedef struct Slot Slot;
 
 struct Object
@@ -40,8 +40,8 @@ struct Object
 		long value;
 		/* cell */
 		struct{
-			Object **car;
-			Object **cdr;
+			Object *car;
+			Object *cdr;
 		};
 		/* symbol */
 		char *sym;
@@ -49,24 +49,24 @@ struct Object
 		Primitive fn;
 		/* function */
 		struct{
-			Object **params;
-			Object **body;
-			Object **env;
+			Object *params;
+			Object *body;
+			Object *env;
 		};
 		/* env */ 
 		struct{
-			Object **vars;
-			Object **up;
+			Object *vars;
+			Object *up;
 		};
 	};
 };
 
 /* const */
-extern Object** True;
-extern Object** False;
-extern Object** Nil;
-extern Object** Plus, **Minus, **Lambda, **Car, **Cdr, **Quote, **Cons, **Define, **Setq;
+extern Object* True;
+extern Object* False;
+extern Object* Nil;
+extern Object* Plus, *Minus, *Lambda, *Car, *Cdr, *Quote, *Cons, *Define, *Setq;
 
 /* root objects */
-extern Object **symbols;
-extern Object **root_env;
+extern Object *symbols;
+extern Object *root_env;

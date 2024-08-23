@@ -52,10 +52,10 @@ skip_line(void)
 	}
 }
 
-static Object** _lpar_list(void);
-static Object** _list(void);
+static Object* _lpar_list(void);
+static Object* _list(void);
 
-static Object**
+static Object*
 _symbol(char c)
 {
 	char buf[SYMBOL_MAX_LEN + 1] = {0,};
@@ -79,16 +79,16 @@ _number()
 	return val;
 }
 
-static Object**
+static Object*
 _quote(void)
 {
-	Object **car = Quote;
-	Object **ccdr = _list();
-	Object **cdr = new_cons(ccdr, Nil);
+	Object *car = Quote;
+	Object *ccdr = _list();
+	Object *cdr = new_cons(ccdr, Nil);
 	return new_cons(car, cdr);
 }
 
-static Object**
+static Object*
 _atom(char c)
 {
 	if(isdigit(c))
@@ -105,10 +105,10 @@ _atom(char c)
 	error("bad char in list '%c'", c);
 }
 
-static Object**
+static Object*
 _lpar_list(void)
 {
-	Object **car = Nil, **cdr = Nil;
+	Object *car = Nil, *cdr = Nil;
 	char c = _slookup();
 	switch(c){
 	case '\'':
@@ -131,7 +131,7 @@ _lpar_list(void)
 	return new_cons(car ,cdr);
 }
 
-static Object**
+static Object*
 _list(void)
 {
 	char c = _slookup();
@@ -141,7 +141,7 @@ _list(void)
 		return _quote();
 	case '(':{
 		getchar();
-		Object **res = _lpar_list();
+		Object *res = _lpar_list();
 		_slookup();
 		_assert(')');
 		return res;
@@ -150,7 +150,7 @@ _list(void)
 	return _atom(c);
 }
 
-Object**
+Object*
 next_expr(void)
 {
 	return _list();

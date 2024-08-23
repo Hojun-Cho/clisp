@@ -34,7 +34,6 @@ typedef struct
 	OList *objs;
 	uintptr_t top;
 	uintptr_t bot;
-	OList roots;
 }GC;
 
 GC gc;
@@ -56,7 +55,7 @@ _alignment(int x)
 	return x;
 }
 
-static Object**
+static Object*
 _entry(void *obj)
 {
 	OList *last = 0;
@@ -65,7 +64,7 @@ _entry(void *obj)
 		for(int i = 0; i<DEFAULT_OBJ_SLOTS; ++i){
 			if(p->arr[i] == 0){
 				p->arr[i] = obj;
-				return &p->arr[i];
+				return p->arr[i];
 			}
 		}
 		last = p;
@@ -73,7 +72,7 @@ _entry(void *obj)
 	}
 	p = last->next = xalloc(sizeof(OList));
 	p->arr[0] = obj;
-	return &p->arr[0];
+	return p->arr[0];
 }
 
 static uintptr_t
@@ -111,7 +110,7 @@ _new(int size, enum Obj_Type type)
 	return obj;
 }
 
-Object**
+Object*
 new_int(long val)
 {
 	Object *obj = _new(sizeof(long), INT);
@@ -119,8 +118,8 @@ new_int(long val)
 	return _entry(obj);
 }
 
-Object**
-new_cons(Object **car, Object **cdr)
+Object*
+new_cons(Object *car, Object *cdr)
 {
 	Object *obj = _new(sizeof(void*)*2, CELL);
 	obj->car = car;
@@ -128,8 +127,8 @@ new_cons(Object **car, Object **cdr)
 	return _entry(obj);
 }
 
-Object**
-new_env(Object **vars, Object **up)
+Object*
+new_env(Object *vars, Object *up)
 {
 	Object *obj = _new(sizeof(void*)*2, ENV);
 	obj->vars = vars;
@@ -137,14 +136,14 @@ new_env(Object **vars, Object **up)
 	return _entry(obj);
 }
 
-Object**
-new_acons(Object **x, Object **y, Object **z)
+Object*
+new_acons(Object *x, Object *y, Object *z)
 {
-	Object **obj = new_cons(x, y);
+	Object *obj = new_cons(x, y);
 	return new_cons(obj, z);
 }
 
-Object**
+Object*
 new_primitve(Primitive fn)
 {
 	Object *obj = _new(sizeof(void*), PRIM);
@@ -152,8 +151,8 @@ new_primitve(Primitive fn)
 	return _entry(obj);
 }
 
-Object**
-new_function(Object **env, enum Obj_Type type, Object **params, Object **body)
+Object*
+new_function(Object *env, enum Obj_Type type, Object *params, Object *body)
 {
 	Object *fn = _new(sizeof(void*)*3, type);
 	fn->params = params;
@@ -171,18 +170,18 @@ _set_ptr(Object *obj, void *dst)
 	memcpy(dst, &ptr, sizeof(ptr));
 }
 
-Object**
+Object*
 new_symbol(char *sym)
 {
-	for(Object **c = symbols; c != Nil; c = (*c)->cdr){
-		if(strcmp(sym, (*((*c)->car))->sym) == 0)
-			return (*c)->car;
+	for(Object *c = symbols; c != Nil; c = c->cdr){
+		if(strcmp(sym, c->car->sym) == 0)
+			return c->car;
 	}
 	int len = strlen(sym);
 	Object *obj = _new(sizeof(void*) + len + 1, SYMBOL);
 	_set_ptr(obj, &obj->sym);
 	memcpy(obj->sym, sym, len + 1);
-	Object **oobj = _entry(obj);
+	Object *oobj = _entry(obj);
 	symbols = new_cons(oobj, symbols);
 	return oobj;
 }
@@ -223,56 +222,45 @@ _mark(Object *obj)
 	SET_MARK(obj);
 	switch(TYPE(obj)){
 	case CELL:
-		_mark(*obj->car);
-		_mark(*obj->cdr);
+		_mark(obj->car);
+		_mark(obj->cdr);
 		break;
 	case FUNC:
-		_mark(*obj->params);
-		_mark(*obj->body);
-		_mark(*obj->env);
+		_mark(obj->params);
+		_mark(obj->body);
+		_mark(obj->env);
 		break;
 	case ENV:
-		_mark(*obj->vars);
-		_mark(*obj->up);
+		_mark(obj->vars);
+		_mark(obj->up);
 		break;
 	}
 }
 
 static Object*
-_find(uintptr_t addr)
+_find(void *addr)
 {
 	OList *p = gc.objs;
 	while(p){
-		if((uintptr_t)&p->arr[0]<=addr && addr<(uintptr_t)&p->arr[DEFAULT_OBJ_SLOTS])
-			return *(Object**)addr;	
+		for(int i = 0; i < sizeof(p->arr)/sizeof(p->arr[0]); ++i){
+			if(addr == p->arr[i])
+				return addr;
+		}
 		p = p->next;
 	}
-	if(gc.beg <= addr && addr<gc.end){
-		uintptr_t cur = gc.beg;
-		while(1){
-			cur = _next(cur);
-			if(cur == 0)
-				break;
-			Object *obj = (Object*)cur;
-			if(cur <= addr && addr < cur + obj->size)
-				return (Object*)obj;
-			cur += obj->size;
-		}
-	}
-	return 0;
 }
 
 static void
 _gc_mark(void)
 {
 	SET_SP(gc.bot);
-	_mark(*symbols);
-	_mark(*root_env);
+	_mark(symbols);
+	_mark(root_env);
 	for(uintptr_t ptr = gc.bot;
 		ptr < gc.top;
 		ptr += sizeof(uintptr_t))
 	{
-		Object *cur = _find((uintptr_t)*(void**)ptr);
+		Object *cur = _find(*(void**)ptr);
 		if(cur)
 			_mark(cur);
 	}
@@ -304,7 +292,7 @@ init_gc(int size)
 	gc.objs = xalloc(sizeof(OList));
 }
 
-static Object**
+static Object*
 _new_Nil(void)
 {
 	Object *nil = _new(sizeof(void*) + 4, SYMBOL);
