@@ -68,6 +68,28 @@ _minus(Object **env, Object **list)
 }
 
 static Object**
+_cons(Object **env, Object **list)
+{
+	int len = _length(list);
+	if(len != 2)
+		error("Malformed cons expected length is 2, but %d", len);
+	Object **obj = _eval_list(env, list);
+	(*obj)->cdr = (*((*obj)->cdr))->car;
+	return obj;
+}
+
+static Object**
+_define(Object **env, Object **list)
+{
+	if(_length(list) != 2 || TYPE(*(*list)->car) != SYMBOL)
+		error_expr("Malformed define", list);
+	Object **sym = (*list)->car;
+	Object **val = eval(env, (*(*list)->cdr)->car);
+	add_variable(sym, val, env);
+	return val;
+}
+
+static Object**
 _quote(Object **env, Object **list)
 {
 	if(_length(list) != 1)
@@ -98,9 +120,8 @@ _find(Object **env, Object **sym)
 {
 	for(Object **p=env; p!=Nil; p=(*p)->up){
 		for(Object **c = (*p)->vars; c!=Nil; c=(*c)->cdr){
-			Object **cell = (*c)->car;
-			if(sym == (*cell)->car)
-				return (*cell)->cdr;
+			if(sym == (*(*c)->car)->car)
+				return (*c)->car;
 		}
 	}
 	return 0;
@@ -167,13 +188,13 @@ eval(Object **env, Object **obj)
 			Object **bind = _find(env, obj);
 			if(bind == 0)
 				error("undefined symbol %s", (*obj)->sym);
-			return bind;
+			return (*bind)->cdr;
 		}
 	case CELL:{
 			Object **fn = (*obj)->car;
 			fn = eval(env, fn);
 			if(TYPE(*fn) != PRIM && TYPE(*fn) != FUNC)
-				error_expr("expected function", obj);
+				error_expr("expected function", fn);
 			Object **args = (*obj)->cdr;
 			return _apply(env, fn, args);
 		}
@@ -190,14 +211,14 @@ init_primitive(void)
 	add_primitive(Car, _car, root_env);
 	add_primitive(Cdr, _cdr, root_env);
 	add_primitive(Quote, _quote, root_env);
+    add_primitive(Cons, _cons, root_env);
+	add_primitive(Define, _define, root_env);
 	/*
-     *add_primitive("cons", fn_cons, root_env);
      *add_primitive("setq", fn_setq, root_env);
      *add_primitive("setcar", fn_setcar, root_env);
      *add_primitive("while", fn_while, root_env);
      *add_primitive("gensym", fn_gensym, root_env);
 	 *add_primitive("<", fn_lt, root_env);
-     *add_primitive("define", fn_define, root_env);
      *add_primitive("defun", fn_defun, root_env);
      *add_primitive("defmacro", fn_defmacro, root_env);
      *add_primitive("macroexpand", fn_macroexpand, root_env);

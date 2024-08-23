@@ -87,6 +87,10 @@ _main(void)
 	}
 
 	for(;;){
+		for(Object **c = symbols; c != Nil; c = (*c)->cdr){
+				printf("%s\n", (*((*c)->car))->sym);
+		}
+
 		Object **obj = next_expr();
 		obj = eval(root_env, obj);
 		print_expr(obj);

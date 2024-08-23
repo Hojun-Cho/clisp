@@ -320,6 +320,8 @@ init_predefined(void)
 	Car = new_symbol("car");
 	Cdr = new_symbol("cdr");
 	Quote = new_symbol("'");
+	Cons = new_symbol("cons");
+	Define = new_symbol("define");
 
 	root_env = new_env(Nil, Nil);
 	add_variable(True, True, root_env);
