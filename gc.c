@@ -9,7 +9,6 @@
 
 #define ALIGN (sizeof(int) * 2)
 #define OBJ_SIZE ALIGN
-#define DEFAULT_OBJ_SLOTS 64
 #define IS_MARKED(x) ((x)->type & Obj_Marked)
 #define SET_MARK(x) ((x)->type |=  Obj_Marked)
 #define UNSET_MARK(x) ((x)->type &= (~Obj_Marked))
@@ -18,22 +17,19 @@
 	addr = (uintptr_t)&_lololololol_;\
 	}
 
-typedef struct OList OList;
-struct OList
-{
-	Object *arr[DEFAULT_OBJ_SLOTS];
-	OList *next;
-};
-
 typedef struct
 {
 	uintptr_t beg;
 	uintptr_t end;
 	int total;
 	int using;
-	OList *objs;
 	uintptr_t top;
 	uintptr_t bot;
+	struct {
+		Object **objs;
+		int objs_cap;
+		int objs_len;
+	};
 }GC;
 
 GC gc;
@@ -55,24 +51,23 @@ _alignment(int x)
 	return x;
 }
 
-static Object*
+static void 
 _entry(void *obj)
 {
-	OList *last = 0;
-	OList *p = gc.objs;
-	while(p){
-		for(int i = 0; i<DEFAULT_OBJ_SLOTS; ++i){
-			if(p->arr[i] == 0){
-				p->arr[i] = obj;
-				return p->arr[i];
-			}
-		}
-		last = p;
-		p = p->next;
+	if(gc.objs_len + 1 > gc.objs_cap){
+		gc.objs = realloc(gc.objs, sizeof(Object*) * gc.objs_cap * 2);
+		for(int i = gc.objs_cap; i < gc.objs_cap * 2; ++i)
+			gc.objs[i] = 0;
+		gc.objs_cap *= 2;
 	}
-	p = last->next = xalloc(sizeof(OList));
-	p->arr[0] = obj;
-	return p->arr[0];
+	for(int i = 0; i< gc.objs_cap; ++i){
+		if(gc.objs[i] == 0){
+			gc.objs[i] = obj;
+			gc.objs_len++;
+			return;
+		}
+	}
+	panic("unreachable");
 }
 
 static uintptr_t
@@ -106,6 +101,7 @@ _new(int size, enum Obj_Type type)
 	Object *obj = (Object*)cur;
 	obj->size = size;
 	obj->type = type;
+	_entry(obj);
 	printf("%p allocated %d byte\n", obj, obj->size);
 	return obj;
 }
@@ -115,7 +111,7 @@ new_int(long val)
 {
 	Object *obj = _new(sizeof(long), INT);
 	obj->value = val;
-	return _entry(obj);
+	return obj;
 }
 
 Object*
@@ -124,7 +120,7 @@ new_cons(Object *car, Object *cdr)
 	Object *obj = _new(sizeof(void*)*2, CELL);
 	obj->car = car;
 	obj->cdr = cdr;
-	return _entry(obj);
+	return obj;
 }
 
 Object*
@@ -133,7 +129,7 @@ new_env(Object *vars, Object *up)
 	Object *obj = _new(sizeof(void*)*2, ENV);
 	obj->vars = vars;
 	obj->up = up;
-	return _entry(obj);
+	return obj;
 }
 
 Object*
@@ -148,7 +144,7 @@ new_primitve(Primitive fn)
 {
 	Object *obj = _new(sizeof(void*), PRIM);
 	obj->fn = fn;
-	return _entry(obj);
+	return obj;
 }
 
 Object*
@@ -158,7 +154,7 @@ new_function(Object *env, enum Obj_Type type, Object *params, Object *body)
 	fn->params = params;
 	fn->body = body;
 	fn->env = env;
-	return _entry(fn);
+	return fn;
 }
 
 static void
@@ -177,13 +173,12 @@ new_symbol(char *sym)
 		if(strcmp(sym, c->car->sym) == 0)
 			return c->car;
 	}
-	int len = strlen(sym);
-	Object *obj = _new(sizeof(void*) + len + 1, SYMBOL);
+	int objs_len = strlen(sym);
+	Object *obj = _new(sizeof(void*) + objs_len + 1, SYMBOL);
 	_set_ptr(obj, &obj->sym);
-	memcpy(obj->sym, sym, len + 1);
-	Object *oobj = _entry(obj);
-	symbols = new_cons(oobj, symbols);
-	return oobj;
+	memcpy(obj->sym, sym, objs_len + 1);
+	symbols = new_cons(obj, symbols);
+	return obj;
 }
 
 static void
@@ -197,20 +192,17 @@ _init_object(Object *obj)
 static void
 _gc_sweep(void)
 {
-	OList *p = gc.objs;
-	while(p){
-		for(int i=0; i<DEFAULT_OBJ_SLOTS; ++i){
-			Object *obj = p->arr[i];
-			if(obj == 0)
-				continue;
-			if(IS_MARKED(obj)==0){
-				_init_object(obj);
-				p->arr[i] = 0;
-			}else{
-				UNSET_MARK(obj);
-			}
+	for(int i=0; i<gc.objs_cap; ++i){
+		Object *obj = gc.objs[i];
+		if(obj == 0)
+			continue;
+		if(IS_MARKED(obj)==0){
+			_init_object(obj);
+			gc.objs[i] = 0;
+			gc.objs_len--;
+		}else{
+			UNSET_MARK(obj);
 		}
-		p = p->next;
 	}
 }
 
@@ -240,14 +232,11 @@ _mark(Object *obj)
 static Object*
 _find(void *addr)
 {
-	OList *p = gc.objs;
-	while(p){
-		for(int i = 0; i < sizeof(p->arr)/sizeof(p->arr[0]); ++i){
-			if(addr == p->arr[i])
-				return addr;
-		}
-		p = p->next;
+	for(int i = 0; i < gc.objs_cap; ++i){
+		if(addr == gc.objs[i])
+			return addr;
 	}
+	return 0;
 }
 
 static void
@@ -284,12 +273,14 @@ init_gc(int size)
 {
 	SET_SP(gc.top);
 	SET_SP(gc.bot);
+	gc.objs_cap = 1;
+	gc.objs_len = 0;
+	gc.objs = xalloc(sizeof(Object*) * gc.objs_cap);
 	size = _alignment(size);
 	gc.total = size;
 	gc.using = 0;
 	gc.beg = (uintptr_t)xalloc(size);
 	gc.end = gc.beg + size;
-	gc.objs = xalloc(sizeof(OList));
 }
 
 static Object*
@@ -298,7 +289,7 @@ _new_Nil(void)
 	Object *nil = _new(sizeof(void*) + 4, SYMBOL);
 	_set_ptr(nil, &nil->sym);
 	memcpy(nil->sym, "nil", 4);
-	return _entry(nil);
+	return nil;
 }
 
 void
