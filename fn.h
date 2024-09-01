@@ -21,6 +21,7 @@ void* gcalloc(GC *,int);
 void* gcralloc(GC *, void*, int);
 GC* newgc(void *top, int cap);
 void gcrun(GC *);
+void gccompact(int cap, GC *src);
 
 /* str.c */
 void strputc(Object*, int);

@@ -24,6 +24,7 @@ struct Object
 	enum OType type; /* type */
 	int flag; 		/* flag */
 	Object *next;   /* for gc */
+	Object *forward;
 	union{
 		/* int */
 		long num;
@@ -60,6 +61,7 @@ struct Object
  */
 typedef struct
 {
+	int running;
 	void *memory;
 	u64 cap;
 	u64 using;

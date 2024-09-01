@@ -8,16 +8,119 @@
 enum
 {
 	USING = 1 << 1,
+	FORWARD = 1 << 2,
 
 	OFFSET = sizeof(int),
 };
 
-int running = 0;
+int
+isobj(GC *gc, u64 p)
+{
+	if(gc->ob <= p && p < gc->oe){
+		p -= gc->ob;
+		return (p % sizeof(Object)) == 0;
+	}
+	return 0;
+}
+
+Object*
+cloneobj(GC *dst, GC *src, Object *obj)
+{
+	if(obj == 0)
+		return 0;
+	if(obj->type==OBLTIN||obj->type==OSYMBOL)
+		return obj;
+	if(obj->flag&FORWARD)
+		return obj->forward;
+	Object *p = newobj(dst, obj->type);
+	obj->flag |= FORWARD;
+	obj->forward = p;
+	switch(obj->type){
+	case OINT:
+		p->num = obj->num;
+		break;
+	case OSTRING:
+	case OIDENT:
+		int len = obj->ptr - obj->beg;
+		p->beg = gcalloc(dst, len + 1);
+		p->end = p->ptr = p->beg + len;
+		memcpy(p->beg, obj->beg, len + 1);
+		break;
+	case OCELL:
+		p->car = cloneobj(dst, src, obj->car);
+		p->cdr = cloneobj(dst, src, obj->cdr);
+		break;
+	case OENV:
+		p->name = cloneobj(dst, src, obj->name);
+		p->vars = cloneobj(dst, src, obj->vars);
+		p->up = cloneobj(dst, src, obj->up);
+		break;
+	case OFUNC:
+		p->params = cloneobj(dst, src, obj->params);
+		p->body = cloneobj(dst, src, obj->body);
+		p->env = cloneobj(dst, src, obj->env);
+		break;
+	}
+	return p;
+}
+
+Object*
+forwardobj(Object *p)
+{
+	if(p == 0)
+		return 0;
+	if(p->flag&FORWARD)
+		return p->forward;
+	switch(p->type){
+	case OBLTIN:
+	case OSYMBOL:
+		break;
+	case OCELL:
+		p->car = forwardobj(p->car);
+		p->cdr = forwardobj(p->cdr);
+		break;
+	case OENV:
+		p->name = forwardobj(p->name);
+		p->vars = forwardobj(p->vars);
+		p->up = forwardobj(p->up);
+		break;
+	case OFUNC:
+		p->params = forwardobj(p->params);
+		p->body = forwardobj(p->body);
+		p->env = forwardobj(p->env);
+		break;
+	}
+	return p;
+}
 
 void
-gccompact(int cap, GC *gc)
+compact(u64 bot, GC *dst, GC *src)
 {
-	GC *ngc = newgc((void*)gc->top, gc->cap * 2);
+	for(Object *p=src->objs; p; p=p->next){
+		cloneobj(dst, src, p);
+	}
+	for(; bot < src->top; bot += sizeof(bot)){
+		u64 val = (u64)*(void**)bot;
+		if(isobj(src, val)){
+			Object *obj = (Object*)val;
+			if(obj->flag&FORWARD)
+				*(void**)bot = forwardobj(obj);
+		}
+	}
+}
+
+void
+gccompact(int cap, GC *src)
+{
+	void *_ = 0;
+	u64 bot = (u64)&_;
+	GC *dst = newgc((void*)src->top, cap);
+	dst->running = 1;
+	compact(bot, dst, src);
+	dst->running = 0;
+	free(src->memory);
+	*src = *dst;
+	free(dst);
 }
 
 void
@@ -113,7 +216,7 @@ gcsweep(GC *gc)
 	Object *last = 0;
 	for(Object *p = gc->objs; p;){
 		if(p->flag&USING){
-			p->flag = 0;
+			p->flag &= ~(USING);
 			last = p;
 			p = p->next;
 		}else{
@@ -129,16 +232,6 @@ gcsweep(GC *gc)
 	}
 }
 
-int
-isobj(GC *gc, u64 p)
-{
-	if(gc->ob <= p && p < gc->oe){
-		p -= gc->ob;
-		return (p % sizeof(Object)) == 0;
-	}
-	return 0;
-}
-
 void
 gcmark(GC *gc)
 {
@@ -152,23 +245,26 @@ gcmark(GC *gc)
 }
 
 void
-gcrun(GC *gc)
+gcrun(GC *src)
 {
-	running = 1;
+	if(src->running)
+		return;
+	src->running = 1;
 	printf("before=> cap:%d using:%d remain:%d\n", gc->cap, gc->using, gc->cap-gc->using);
 	jmp_buf reg;
 	setjmp(reg);
-	gcmark(gc);
-	gcsweep(gc);
+	gcmark(src);
+	gcsweep(src);
+	gccompact(src->cap + 500, src);
 	printf("after=> cap:%d using:%d remain:%d\n", gc->cap, gc->using, gc->cap-gc->using);
-	running = 0;
+	src->running = 0;
 }
 
 Object*
 newobj(GC *gc, enum OType type)
 {	
 	if(gc->op + sizeof(Object) >= gc->oe){
-		panic("Not impl yet newobj raise");	
+		panic("Not impl yet newobj raise");
 	}
 	gcrun(gc);
 	gc->using += sizeof(Object);
@@ -197,7 +293,7 @@ newgc(void *top, int cap)
 	if(gc == 0)
 		panic("can't alloc %d byte\n", sizeof(GC));
 	gc->top = (u64)top;
-	if((gc->memory = malloc(cap)) == 0)
+	if((gc->memory = calloc(1, cap)) == 0)
 		panic("can't alloc %d byte\n", cap);
 	gc->cap = cap;
 	gc->using = 0;

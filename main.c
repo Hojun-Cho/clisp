@@ -57,16 +57,15 @@ printexpr(Object *obj)
 }
 
 static void
-loop(void)
+loop(Object *env)
 {
-	Object *root = newenv(gc, &Nil, &Nil, &Nil);
 	if(setjmp(err) == 1){
 		skipline();
 		gcrun(gc);
 	}
 	while(1){
 		Object *res = nextexpr();
-		res = eval(root, res);
+		res = eval(env, res);
 		printexpr(res);
 	}
 }
@@ -75,5 +74,6 @@ int
 main(int argc, char *argv[])
 {
 	gc = newgc(&argc, 4000);
-	loop();
+	Object *env = newenv(gc, &Nil, &Nil, &Nil);
+	loop(env);
 }
