@@ -1,3 +1,6 @@
+#include <stdint.h>
+
+typedef uintptr_t u64;
 typedef struct Object Object;
 typedef Object* (*Bltinfn)(Object *env, Object *args);
 typedef struct Object Object;
@@ -50,6 +53,31 @@ struct Object
 		};
 	};
 };
+
+/*
+ *0  ~ 64  : for object 
+ *64 ~ 100 : for string 
+ */
+typedef struct
+{
+	void *memory;
+	u64 cap;
+	u64 using;
+	u64 top;
+	/* objects */
+	struct{
+		Object *objs;
+		u64 ob;
+		u64 oe;
+		u64 op;
+		Object *freed;
+	};
+	/* string  */
+	struct{
+		u64 sb;
+		u64 se;
+	};
+}GC;
 
 extern Object Nil;
 extern Object True;

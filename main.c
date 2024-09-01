@@ -64,7 +64,6 @@ loop(void)
 		gcrun();
 	}
 	while(1){
-		gcstatus();
 		Object *res = nextexpr();
 		res = eval(root, res);
 		printexpr(res);
@@ -74,6 +73,6 @@ loop(void)
 int
 main(int argc, char *argv[])
 {
-	gcinit(&argc, 3000);
+	gcinit(&argc, 4000);
 	loop();
 }

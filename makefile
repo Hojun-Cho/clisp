@@ -10,7 +10,7 @@ OFILES=\
 	parser.o
 
 AS=$(CC) -c
-CFLAGS=-c  -g -O2
+CFLAGS=-c  -g -O0
 
 all: $(NAME)
 

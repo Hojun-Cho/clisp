@@ -2,11 +2,11 @@
 #include "fn.h"
 #include <string.h>
 
-static void
-raise(Object *s, int ns)
+void
+strraise(Object *s, int ns)
 {
 	int pos = s->ptr - s->beg;
-	char *ptr = xralloc(s->beg, ns + 1);
+	char *ptr = gcralloc(s->beg, ns + 1);
 	s->beg = ptr;
 	s->ptr = s->beg + pos;
 	s->end = s->beg + ns;
@@ -16,7 +16,7 @@ void
 strputc(Object *s, int c)
 {
 	if(s->ptr >= s->end)
-		raise(s, (s->end - s->beg) * 2);
+		strraise(s, (s->end - s->beg) * 2);
 	*s->ptr++ = c;
 	*s->ptr = 0;
 }
@@ -26,7 +26,7 @@ strputs(Object *s, char *ptr)
 {
 	int l = strlen(ptr);
 	if(s->ptr + l >= s->end)
-		raise(s, s->end - s->beg + l);
+		strraise(s, s->end - s->beg + l);
 	memcpy(s->ptr, ptr, l);
 	s->ptr += l;
 	s->ptr[0] = 0;

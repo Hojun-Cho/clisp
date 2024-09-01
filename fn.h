@@ -18,8 +18,8 @@ Object* newfn(Object *env, Object *params, Object *body);
 /* gc.c */
 void gcstatus(void);
 Object* newobj(enum OType);
-void* xalloc(int);
-void* xralloc(void*, int);
+void* gcalloc(int);
+void* gcralloc(void*, int);
 void gcinit(void *top, int cap);
 void gcrun(void);
 

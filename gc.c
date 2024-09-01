@@ -1,45 +1,86 @@
 #include "dat.h"
 #include "fn.h"
 #include <stdlib.h>
-#include <stdint.h>
 #include <setjmp.h>
-#include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 enum
 {
 	USING = 1 << 1,
-};
 
-typedef struct
-{
-	int total;
-	int using;
-	uintptr_t top;
-	uintptr_t beg;
-	uintptr_t end;
-	Object objs;
-	Object freed;
-}GC;
+	OFFSET = sizeof(int),
+};
 
 GC gc = {0};
 
-static void
-pushobj(Object *list, Object *obj)
+void
+gcfree(void *src)
 {
-	Object *l = list;
-	Object *c = l->next;
-	while(c){
-		l = c;
-		c=c->next;
-	}
-	l->next = obj;
+	int *p = (int*)src - 1;
+	int sz = *p;
+	memset(p, 0, sz);
+	gc.using -= sz;
 }
 
-static void
+void
+freeobj(Object *p)
+{
+	gc.using -= sizeof(Object);
+	p->next  = 0;
+	switch(p->type){
+	default:
+		break;
+	case OSTRING:
+	case OIDENT:
+		gcfree(p->beg);
+		break;
+	}
+	memset(p, 0, sizeof(Object));
+	if(gc.freed == 0)
+		gc.freed = p;
+	else{
+		p->next = gc.freed;
+		gc.freed = p;
+	}
+}
+
+void*
+gcalloc(int sz)
+{
+	sz += OFFSET;
+	if(sz % OFFSET) sz = sz + OFFSET - (sz % OFFSET);
+	for(u64 i = gc.sb; i < gc.se;){
+		u64 j = i;
+		for(;j - i < sz; j += OFFSET){
+			if(*(int*)(j) != 0)
+				break;
+		}
+		if(j - i == sz){
+			gc.using += sz;
+			*(int*)i = sz;
+			i += OFFSET;
+			return (void*)i;
+		}
+		i = j + *(int*)(j);
+	}
+	panic("gccalloc : Not impl yet raise");
+}
+
+void*
+gcralloc(void *src, int sz)
+{
+	void *dst = gcalloc(sz);
+	int osz = ((int*)src)[-1];
+	memcpy(dst, src, osz);
+	gcfree(src);
+	return dst;
+}
+
+void
 mark(Object *obj)
 {
-	if(obj == 0 || obj->flag & USING)
+	if(obj == 0 || obj->flag&USING)
 		return;
 	obj->flag = USING;
 	switch(obj->type){
@@ -60,57 +101,45 @@ mark(Object *obj)
 	}
 }
 
-static int
-isobj(uintptr_t val)
-{
-	if(val < gc.beg || val >= gc.end)
-		return 0;
-	val -= gc.beg;
-	uintptr_t mod = val % sizeof(Object);
-	return mod == 0;
-}
-
-static void
-freeobj(Object *obj)
-{
-	switch(obj->type){
-	case OSTRING:
-	case OIDENT:
-		printf("freed => '%s'\n", obj->beg);
-		free(obj->beg);
-		break;
-	}
-	memset(obj, 0, sizeof(*obj));
-	pushobj(&gc.freed, obj);
-	gc.using -= sizeof(Object);
-}
-
-static void
+void
 gcsweep(void)
 {
-	Object *l = &gc.objs;
-	Object *c = l->next;
-	while(c){
-		if(c->flag&USING){
-			c->flag = 0;
-			l = c;
-			c = c->next;
-			continue;
+	Object *last = 0;
+	for(Object *p = gc.objs; p;){
+		if(p->flag&USING){
+			p->flag = 0;
+			last = p;
+			p = p->next;
+		}else{
+			Object *tmp = p;
+			if(last == 0){
+				gc.objs = p->next;
+			}else{
+				last->next = p->next;
+			}
+			p = p->next;
+			freeobj(tmp);
 		}
-		Object *t = c;
-		l->next = c->next;
-		c = c->next;
-		freeobj(t);
 	}
 }
 
-static void
+int
+isobj(u64 p)
+{
+	if(gc.ob <= p && p < gc.oe){
+		p -= gc.ob;
+		return (p % sizeof(Object)) == 0;
+	}
+	return 0;
+}
+
+void
 gcmark(void)
 {
 	void *_ = 0;
-	uintptr_t bot = (uintptr_t)&_;
+	u64 bot = (u64)&_;
 	for(; bot < gc.top; bot += sizeof(bot)){
-		uintptr_t val = (uintptr_t)*(void**)bot;
+		u64 val = (u64)*(void**)bot;
 		if(isobj(val))
 			mark((Object*)val);
 	}
@@ -119,64 +148,52 @@ gcmark(void)
 void
 gcrun(void)
 {
+	printf("before=> cap:%d using:%d remain:%d\n", gc.cap, gc.using, gc.cap-gc.using);
 	jmp_buf reg;
 	setjmp(reg);
 	gcmark();
 	gcsweep();
-	gcstatus();
+	printf("after=> cap:%d using:%d remain:%d\n", gc.cap, gc.using, gc.cap-gc.using);
 }
 
-void
-gcstatus(void)
-{
-	printf("curren=> total:%d using:%d remain:%d\n", gc.total, gc.using, gc.total-gc.using);
-}
-
-void*
-xalloc(int sz)
-{
-	int *res = calloc(1, sz);
-	if(res == 0)
-		panic("Can't allocated %d byte", sz);
-	return res;
-}
-
-void*
-xralloc(void *src, int sz)
-{
-	int *p = realloc(src, sz);
-	if(p == 0)
-		panic("Can't allocated %d byte", sz);
-	return p;
-}
-
-Object* 
+Object*
 newobj(enum OType type)
-{
+{	
+	if(gc.op + sizeof(Object) >= gc.oe){
+		panic("Not impl yet newobj raise");	
+	}
 	gcrun();
-	Object *obj = 0;
-	if(gc.freed.next){
-		obj = gc.freed.next;
-		gc.freed.next = obj->next;
-		obj->next = 0;
-	}else
-		panic("not impl yet");
-	obj->type = type;
-	pushobj(&gc.objs, obj);
 	gc.using += sizeof(Object);
-	return obj;
+	Object *r = 0;
+	if(gc.freed){
+		r = gc.freed;
+		gc.freed = gc.freed->next;
+	}else{
+		r = (Object*)gc.op;
+		gc.op += sizeof(Object);
+	}
+	r->type = type;
+	if(gc.objs == 0)
+		gc.objs = r;
+	else{
+		r->next = gc.objs;
+		gc.objs = r;
+	}
+	return r;
 }
 
 void
 gcinit(void *top, int cap)
 {
-	gc.total = cap;
+	gc.top = (u64)top;
+	if((gc.memory = malloc(cap)) == 0)
+		panic("can't alloc %d byte\n", cap);
+	gc.cap = cap;
 	gc.using = 0;
-	gc.top = (uintptr_t)top;
-	gc.beg = (uintptr_t)xalloc(cap);
-	gc.end = gc.beg + cap;
-	Object *p = &gc.freed;
-	for(uintptr_t i = gc.beg; i < gc.end; i+=sizeof(Object)){
-		p = p->next = (Object*)i;
-	}
+
+	gc.op = gc.ob = (u64)gc.memory;
+	gc.oe = gc.op + (float)cap * 0.64;
+
+	gc.sb = (u64)gc.memory + (float)cap * 0.64;
+	gc.se = (u64)gc.memory + cap;
 }

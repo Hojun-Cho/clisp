@@ -60,7 +60,7 @@ newsymbol(char *str, int len)
 			return c;
 	}
 	Object *obj = newobj(OIDENT);
-	obj->beg = xalloc(len + 1);
+	obj->beg = gcalloc(len + 1);
 	obj->end = obj->ptr = obj->beg + len;	
 	memcpy(obj->beg, str, len+1);
 	return obj;
@@ -70,7 +70,7 @@ Object*
 newstr(int len)
 {
 	Object *obj = newobj(OSTRING); 
-	obj->ptr = obj->beg = xalloc(len + 1);
+	obj->ptr = obj->beg = gcalloc(len + 1);
 	obj->end = obj->beg + len;
 	return obj; 
 }
