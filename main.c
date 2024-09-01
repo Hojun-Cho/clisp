@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 jmp_buf err;
+GC *gc;
 
 static void
 SExprint(Object *obj)
@@ -58,10 +59,10 @@ printexpr(Object *obj)
 static void
 loop(void)
 {
-	Object *root = newenv(&Nil, &Nil, &Nil);
+	Object *root = newenv(gc, &Nil, &Nil, &Nil);
 	if(setjmp(err) == 1){
 		skipline();
-		gcrun();
+		gcrun(gc);
 	}
 	while(1){
 		Object *res = nextexpr();
@@ -73,6 +74,6 @@ loop(void)
 int
 main(int argc, char *argv[])
 {
-	gcinit(&argc, 4000);
+	gc = newgc(&argc, 4000);
 	loop();
 }

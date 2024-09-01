@@ -79,6 +79,7 @@ typedef struct
 	};
 }GC;
 
+extern GC *gc;
 extern Object Nil;
 extern Object True;
 extern Object False;

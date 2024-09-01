@@ -7,21 +7,20 @@ Object* eval(Object *env, Object *expr);
 
 /* new */
 
-Object* newint(long);
-Object* newcons(Object*,Object*);
-Object* newenv(Object*name, Object *vars, Object *up);
-Object* newacons(Object*, Object*, Object*);
-Object* newsymbol(char*, int);
-Object* newstr(int);
-Object* newfn(Object *env, Object *params, Object *body);
+Object* newint(GC *,long);
+Object* newcons(GC *,Object*,Object*);
+Object* newenv(GC *,Object*name, Object *vars, Object *up);
+Object* newacons(GC *,Object*, Object*, Object*);
+Object* newsymbol(GC *,char*, int);
+Object* newstr(GC *,int);
+Object* newfn(GC *,Object *env, Object *params, Object *body);
 
 /* gc.c */
-void gcstatus(void);
-Object* newobj(enum OType);
-void* gcalloc(int);
-void* gcralloc(void*, int);
-void gcinit(void *top, int cap);
-void gcrun(void);
+Object* newobj(GC *,enum OType);
+void* gcalloc(GC *,int);
+void* gcralloc(GC *, void*, int);
+GC* newgc(void *top, int cap);
+void gcrun(GC *);
 
 /* str.c */
 void strputc(Object*, int);

@@ -40,9 +40,9 @@ enter(Object *env, Object *vars, Object *args)
 			error("Cna't apply function argment dose not match");
 		Object *id  = vars->car;
 		Object *val = args->car;
-		map = newacons(id, val, map);
+		map = newacons(gc, id, val, map);
 	}
-	return newenv(&Nil, map, env);
+	return newenv(gc, &Nil, map, env);
 }
 
 Object*
@@ -56,7 +56,7 @@ fnlambda(Object *env, Object *l)
 	}
 	Object *params = l->car;
 	Object *body = l->cdr;
-	return newfn(env, params, body);
+	return newfn(gc, env, params, body);
 }
 
 Object*
@@ -79,7 +79,7 @@ fndefine(Object *env, Object *list)
 	Object *obj = find(env, list->car);
 	if(obj)
 		return obj->cdr = val;
-	return env->vars = newacons(list->car, val, env->vars);
+	return env->vars = newacons(gc, list->car, val, env->vars);
 }
 
 Object*
@@ -91,7 +91,7 @@ fnplus(Object *env, Object *list)
 			error("+ take only number");
 		sum += p->car->num;
 	}
-	return newint(sum);
+	return newint(gc, sum);
 }
 
 static Object*
@@ -103,7 +103,7 @@ evallist(Object *env, Object *list)
 		error("type is not list");
 	Object *car = eval(env, list->car);
 	Object *cdr = evallist(env, list->cdr);
-	return newcons(car, cdr);
+	return newcons(gc, car, cdr);
 }
 
 static Object*
