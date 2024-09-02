@@ -120,15 +120,38 @@ fncons(Object *env, Object *list)
 }
 
 Object*
-fnplus(Object *env, Object *list)
+plusint(Object *env, Object *p)
 {
 	long sum = 0;
-	for(Object *p=evallist(env, list); p!=&Nil; p=p->cdr){
+    for(;p!=&Nil; p=p->cdr){
 		if(p->car->type != OINT)
 			error("+ take only number");
 		sum += p->car->num;
 	}
 	return newint(gc, sum);
+}
+
+Object*
+plusstr(Object *env, Object *p)
+{
+    Object *str = newstr(gc, 16);
+    for(;p!=&Nil; p=p->cdr){
+		if(p->car->type != OSTRING)
+			error("+ take only number");
+        strputs(str, p->car->beg);
+	}
+    return str;
+}
+
+Object*
+fnplus(Object *env, Object *list)
+{
+    Object *p=evallist(env, list);
+    switch(p->car->type){
+    default: error("+ take only [STRING, INT]");
+    case OSTRING: return plusstr(env ,p);
+    case OINT: return plusint(env, p);
+    }
 }
 
 static Object*
