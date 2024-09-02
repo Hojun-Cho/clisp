@@ -113,6 +113,7 @@ atom(char c)
 		return symbol(c);
 	}
 	error("bad char in list '%c'", c);
+	return 0;
 }
 
 static Object*

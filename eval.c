@@ -79,7 +79,8 @@ fndefine(Object *env, Object *list)
 	Object *obj = find(env, list->car);
 	if(obj)
 		return obj->cdr = val;
-	return env->vars = newacons(gc, list->car, val, env->vars);
+	env->vars = newacons(gc, list->car, val, env->vars);
+	return env->vars;
 }
 
 Object*
@@ -124,27 +125,29 @@ apply(Object *env, Object *fn, Object *args)
 	if(islist(args) == 0)
 		error("args is not list type");
 	switch(fn->type){
-	case OBLTIN:
-		Bltinfn blt = bltinlookup(fn);
-		if(blt==0)
-			error("not builtin type!");
-		return blt(env, args);
+	default: error("can't apply");
+	case OBLTIN:{
+            Bltinfn blt = bltinlookup(fn);
+            if(blt==0)
+                error("not builtin type!");
+            return blt(env, args);
+        }
 	case OFUNC:{
 			Object *elist = evallist(env, args);
 			Object*res = applyfn(fn, elist);
 			return res;
 		}
 	}
-	error("can't apply");
-	return 0;
 }
 
 Object*
 eval(Object *env, Object *obj)
 {
 	switch(obj->type){
-	case OINT:
+	default:
+		error("can't eval");
 	case OSTRING:
+	case OINT:
 	case OBLTIN:
 	case OSYMBOL:
 		return obj;
@@ -162,6 +165,4 @@ eval(Object *env, Object *obj)
 			return res;
 		}
 	}
-	error("can't apply");
-	return 0;
 }

@@ -3,7 +3,6 @@
 typedef uintptr_t u64;
 typedef struct Object Object;
 typedef Object* (*Bltinfn)(Object *env, Object *args);
-typedef struct Object Object;
 
 enum OType
 {

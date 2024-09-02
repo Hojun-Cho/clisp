@@ -3,7 +3,7 @@
 #include <setjmp.h>
 #include <stdio.h>
 
-jmp_buf err;
+jmp_buf *errptr;
 GC *gc;
 
 static void
@@ -12,6 +12,8 @@ SExprint(Object *obj)
 	if(obj == 0)
 		return;
 	switch(obj->type){
+	default:
+		return;
 	case OCELL:
 		printf("(");
 		SExprint(obj->car);
@@ -34,6 +36,7 @@ SExprint(Object *obj)
 		break;
 	case OENV:
 		printf("<env>");
+		SExprint(obj->vars);
 		break;
 	case OLAMBDA:
 		printf("<lambda>");
@@ -57,16 +60,22 @@ printexpr(Object *obj)
 }
 
 static void
-loop(Object *env)
+loop(void)
 {
-	if(setjmp(err) == 1){
+	Object *env = newenv(gc, &Nil, &Nil, &Nil);
+    jmp_buf buf;
+    errptr = &buf;
+	if(setjmp(buf) == 1){
 		skipline();
-		gcrun(gc);
 	}
 	while(1){
 		Object *res = nextexpr();
 		res = eval(env, res);
+		printf("=============res===========\n");
 		printexpr(res);
+		printf("=============env===========\n");
+		printexpr(env);
+		printf("===========================\n");
 	}
 }
 
@@ -74,6 +83,5 @@ int
 main(int argc, char *argv[])
 {
 	gc = newgc(&argc, 4000);
-	Object *env = newenv(gc, &Nil, &Nil, &Nil);
-	loop(env);
+	loop();
 }

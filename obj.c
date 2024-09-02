@@ -34,7 +34,7 @@ Object*
 newacons(GC *gc, Object *x, Object *y, Object *z)
 {
 	Object *cons = newcons(gc, x, y);
-	return newcons(gc, cons, z);
+	return newcons(gc, cons ,z);
 }
 
 Object*

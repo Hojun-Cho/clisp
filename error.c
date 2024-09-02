@@ -19,7 +19,7 @@ panic(char *fmt, ...)
 void
 error(char *fmt, ...)
 {
-	extern jmp_buf err;
+	extern jmp_buf *errptr;
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -27,6 +27,6 @@ error(char *fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	fprintf(stderr, "\n");
-	longjmp(err, 1);
+	longjmp(*errptr, 1);
 	exit(1);
 }

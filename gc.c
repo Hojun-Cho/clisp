@@ -13,16 +13,6 @@ enum
 	OFFSET = sizeof(int),
 };
 
-int
-isobj(GC *gc, u64 p)
-{
-	if(gc->ob <= p && p < gc->oe){
-		p -= gc->ob;
-		return (p % sizeof(Object)) == 0;
-	}
-	return 0;
-}
-
 Object*
 cloneobj(GC *dst, GC *src, Object *obj)
 {
@@ -36,16 +26,18 @@ cloneobj(GC *dst, GC *src, Object *obj)
 	obj->flag |= FORWARD;
 	obj->forward = p;
 	switch(obj->type){
+	default: panic("unreachable");
 	case OINT:
 		p->num = obj->num;
 		break;
 	case OSTRING:
-	case OIDENT:
-		int len = obj->ptr - obj->beg;
-		p->beg = gcalloc(dst, len + 1);
-		p->end = p->ptr = p->beg + len;
-		memcpy(p->beg, obj->beg, len + 1);
-		break;
+	case OIDENT:{
+            int len = obj->ptr - obj->beg;
+            p->beg = gcalloc(dst, len + 1);
+            p->end = p->ptr = p->beg + len;
+            memcpy(p->beg, obj->beg, len + 1);
+            break;
+        }
 	case OCELL:
 		p->car = cloneobj(dst, src, obj->car);
 		p->cdr = cloneobj(dst, src, obj->cdr);
@@ -65,46 +57,48 @@ cloneobj(GC *dst, GC *src, Object *obj)
 }
 
 Object*
-forwardobj(Object *p)
+moveobj(Object *p)
 {
-	if(p == 0)
+	if(p == 0 || p->type == 0)
 		return 0;
-	if(p->flag&FORWARD)
-		return p->forward;
 	switch(p->type){
+	default:
+		return p->forward;
 	case OBLTIN:
 	case OSYMBOL:
-		break;
-	case OCELL:
-		p->car = forwardobj(p->car);
-		p->cdr = forwardobj(p->cdr);
-		break;
-	case OENV:
-		p->name = forwardobj(p->name);
-		p->vars = forwardobj(p->vars);
-		p->up = forwardobj(p->up);
-		break;
-	case OFUNC:
-		p->params = forwardobj(p->params);
-		p->body = forwardobj(p->body);
-		p->env = forwardobj(p->env);
-		break;
+		return p;
 	}
-	return p;
 }
 
 void
-compact(u64 bot, GC *dst, GC *src)
+forwardstack(u64 bot, GC *dst, GC *src)
 {
-	for(Object *p=src->objs; p; p=p->next){
-		cloneobj(dst, src, p);
-	}
+	u64 pos, diff, *stk;
+	Object *moved, *org;
 	for(; bot < src->top; bot += sizeof(bot)){
-		u64 val = (u64)*(void**)bot;
-		if(isobj(src, val)){
-			Object *obj = (Object*)val;
-			if(obj->flag&FORWARD)
-				*(void**)bot = forwardobj(obj);
+		stk = (u64*)(void**)bot;
+		if(src->ob <= *stk && *stk < src->oe){
+			diff = (*stk - src->ob) % sizeof(Object);
+			org = (Object*)(*stk - diff);
+			if((moved = moveobj(org)) == 0)
+				continue;
+			diff = (u64)org - *stk;
+			pos = (u64)moved + diff;
+			memcpy(stk, &pos, sizeof(pos));
+		}
+		else if(src->sb <= *stk && *stk < src->se)
+		for(org = src->objs; org; org = org->next){
+			if(org->type == OSTRING || org->type == OIDENT){
+				u64 beg = (u64)org->beg - OFFSET;
+				u64 end = beg + *(int*)beg;
+				if(beg <= *stk &&  *stk < end){
+					moved = moveobj(org);
+					diff = (*stk - beg);
+					pos = (u64)moved->beg - OFFSET + diff;
+					memcpy(stk, &pos, sizeof(pos));
+					break;
+				}
+			}
 		}
 	}
 }
@@ -116,8 +110,9 @@ gccompact(int cap, GC *src)
 	u64 bot = (u64)&_;
 	GC *dst = newgc((void*)src->top, cap);
 	dst->running = 1;
-	compact(bot, dst, src);
-	dst->running = 0;
+	for(Object *p=src->objs; p; p=p->next)
+		cloneobj(dst, src, p);
+	forwardstack(bot, dst, src);
 	free(src->memory);
 	*src = *dst;
 	free(dst);
@@ -174,6 +169,7 @@ gcalloc(GC *gc, int sz)
 		i = j + *(int*)(j);
 	}
 	panic("gccalloc : Not impl yet raise");
+	return 0;
 }
 
 void*
@@ -189,10 +185,12 @@ gcralloc(GC *gc, void *src, int sz)
 void
 mark(GC *gc, Object *obj)
 {
-	if(obj == 0 || obj->flag&USING)
+	if(obj == 0 || obj->flag&USING ||
+		obj->type == 0|| obj->type==OBLTIN ||obj->type==OSYMBOL)
 		return;
 	obj->flag = USING;
 	switch(obj->type){
+	default:break;
 	case OCELL:
 		mark(gc, obj->car);
 		mark(gc, obj->cdr);
@@ -215,6 +213,8 @@ gcsweep(GC *gc)
 {
 	Object *last = 0;
 	for(Object *p = gc->objs; p;){
+		if(p->type == 0|| p->type==OBLTIN ||p->type==OSYMBOL)
+			return;
 		if(p->flag&USING){
 			p->flag &= ~(USING);
 			last = p;
@@ -235,12 +235,26 @@ gcsweep(GC *gc)
 void
 gcmark(GC *gc)
 {
-	void *_ = 0;
+	u64 _ = 0, stk, diff;
 	u64 bot = (u64)&_;
+	Object *obj;
 	for(; bot < gc->top; bot += sizeof(bot)){
-		u64 val = (u64)*(void**)bot;
-		if(isobj(gc, val))
-			mark(gc, (Object*)val);
+		stk = (u64)*(void**)bot;
+		if(gc->ob <= stk && stk <= gc->oe){
+			diff = (stk - gc->ob) % sizeof(Object);
+			obj = (Object*)(stk - diff);
+			mark(gc, obj);
+		}
+		else if(gc->sb <= stk && stk <= gc->se)
+		for(Object *obj = gc->objs; obj; obj = obj->next)
+		if(obj->type == OSTRING || obj->type == OIDENT){
+			u64 beg = (u64)obj->beg - OFFSET;
+			u64 end = beg + *(int*)beg;
+			if(beg <= stk &&  stk < end){
+				mark(gc, obj);
+				break;
+			}
+		}
 	}
 }
 
@@ -249,23 +263,23 @@ gcrun(GC *src)
 {
 	if(src->running)
 		return;
+	printf("BEFORE=> cap:%10ld using:%10ld remain:%10ld\n", src->cap, src->using, src->cap - src->using);
 	src->running = 1;
-	printf("before=> cap:%d using:%d remain:%d\n", gc->cap, gc->using, gc->cap-gc->using);
 	jmp_buf reg;
-	setjmp(reg);
+	if(setjmp(reg)==1){
+		printf("AFTER => cap:%10ld using:%10ld remain:%10ld\n", src->cap, src->using, src->cap - src->using);
+		src->running = 0;
+		return;
+	}
 	gcmark(src);
 	gcsweep(src);
 	gccompact(src->cap + 500, src);
-	printf("after=> cap:%d using:%d remain:%d\n", gc->cap, gc->using, gc->cap-gc->using);
-	src->running = 0;
+	longjmp(reg, 1);
 }
 
 Object*
 newobj(GC *gc, enum OType type)
-{	
-	if(gc->op + sizeof(Object) >= gc->oe){
-		panic("Not impl yet newobj raise");
-	}
+{
 	gcrun(gc);
 	gc->using += sizeof(Object);
 	Object *r = 0;
@@ -277,13 +291,9 @@ newobj(GC *gc, enum OType type)
 		gc->op += sizeof(Object);
 	}
 	r->type = type;
-	if(gc->objs == 0)
-		gc->objs = r;
-	else{
+	if(gc->objs)
 		r->next = gc->objs;
-		gc->objs = r;
-	}
-	return r;
+	return gc->objs = r;
 }
 
 GC*
