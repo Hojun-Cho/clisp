@@ -51,8 +51,8 @@ Object*
 newsymbol(GC *gc, char *str, int len)
 {
 	static Object *syms[] = {
-		&Nil, &True, &False, &Minus, &Plus,
-		&Lambda, &Car, &Cdr, &Quote, &Cons, &Define, &Setq,
+		&Nil,  &Minus, &Plus, &Lambda, &Car, &Cdr, &Quote, &Cons,
+        &Define, &Setq, &Eq,
 	};
 	for(int i = 0; i < sizeof(syms)/sizeof(syms[0]); ++i){
 		Object *c = syms[i];

@@ -82,8 +82,6 @@ typedef struct
 
 extern GC *gc;
 extern Object Nil;
-extern Object True;
-extern Object False;
 extern Object Minus;
 extern Object Plus;
 extern Object Lambda;
@@ -93,3 +91,4 @@ extern Object Quote;
 extern Object Cons;
 extern Object Define;
 extern Object Setq;
+extern Object Eq;

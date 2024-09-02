@@ -154,6 +154,28 @@ fnplus(Object *env, Object *list)
     }
 }
 
+long
+eq(Object *env, Object *a, Object *b)
+{
+    if(a == b)
+        return 1;
+    if(a->type != b->type)
+        return 0;
+    switch(a->type){
+    default: error("eq only compare [INT]");
+    case OSTRING: return strequal(a, b);
+    case OINT: return a->num == b->num;
+    }
+}
+
+Object*
+fneq(Object *env, Object *list)
+{
+    Object *a = eval(env, list->car);
+    Object *b = eval(env, list->cdr->car);
+    return newint(gc, eq(env, a, b));
+}
+
 static Object*
 evallist(Object *env, Object *list)
 {
