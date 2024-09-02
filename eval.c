@@ -14,6 +14,12 @@ exprlen(Object *expr)
 	return l;
 }
 
+int
+istrue(Object *o)
+{
+    return o && o->type==OINT && o->num!=0;
+}
+
 static int
 islist(Object *obj)
 {
@@ -174,6 +180,21 @@ fneq(Object *env, Object *list)
     Object *a = eval(env, list->car);
     Object *b = eval(env, list->cdr->car);
     return newint(gc, eq(env, a, b));
+}
+
+/*
+ * (if ((cond) val)* )
+ * (if ((eq x y) 0) ((eq x z ) 1) (default))
+ */
+Object*
+fnif(Object *env, Object *list)
+{
+    if(list == 0 || list == &Nil)
+        return newint(gc, 0);
+    Object *t = eval(env, list->car->car);
+    if(istrue(t))
+        return eval(env, list->car->cdr->car);
+    return fnif(env, list->cdr);
 }
 
 static Object*

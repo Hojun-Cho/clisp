@@ -12,6 +12,7 @@ Object Cons	= (Object){.type=OBLTIN, .sym="cons"};
 Object Define= (Object){.type=OBLTIN, .sym="define"};
 Object Setq	= (Object){.type=OBLTIN, .sym="setq"};
 Object Eq	= (Object){.type=OBLTIN, .sym="eq"};
+Object If	= (Object){.type=OBLTIN, .sym="if"};
 
 extern Object* fnplus(Object *, Object *);
 extern Object* fnlambda(Object *, Object *);
@@ -23,6 +24,7 @@ extern Object* fncar(Object *, Object *);
 extern Object* fncdr(Object *, Object *);
 extern Object* fncons(Object *, Object *);
 extern Object* fneq(Object *, Object *);
+extern Object* fnif(Object *, Object *);
 /*extern Object* fnminus(Object *, Object *);*/
 
 Bltinfn
@@ -42,6 +44,7 @@ bltinlookup(Object *obj)
 		{&Cdr ,fncdr},
 		{&Cons ,fncons},
         {&Eq, fneq},
+        {&If, fnif},
 		{&Minus ,0},
         {0},
 	};

@@ -92,3 +92,4 @@ extern Object Cons;
 extern Object Define;
 extern Object Setq;
 extern Object Eq;
+extern Object If;
