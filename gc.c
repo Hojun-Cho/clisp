@@ -273,7 +273,9 @@ gcrun(GC *src)
 	}
 	gcmark(src);
 	gcsweep(src);
-	gccompact(src->cap + 500, src);
+	if(src->using >= src->cap * 0.5){
+		gccompact(src->cap * 2, src);
+	}
 	longjmp(reg, 1);
 }
 
@@ -309,9 +311,9 @@ newgc(void *top, int cap)
 	gc->using = 0;
 
 	gc->op = gc->ob = (u64)gc->memory;
-	gc->oe = gc->op + (float)cap * 0.64;
+	gc->oe = gc->op + (float)cap * 0.75;
 
-	gc->sb = (u64)gc->memory + (float)cap * 0.64;
+	gc->sb = (u64)gc->memory + (float)cap * 0.75;
 	gc->se = (u64)gc->memory + cap;
 	return gc;
 }

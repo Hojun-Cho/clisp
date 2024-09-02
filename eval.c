@@ -163,9 +163,9 @@ fnplus(Object *env, Object *list)
 Object*
 fnmul(Object *env, Object *list)
 {
-    Object *p=evallist(env, list);
+    Object *p = evallist(env, list);
     if(p->car->type != OINT)
-        error("* take only [INT]");
+		error("* take only [INT]");
 	long sum = p->car->num;
     for(p=p->cdr;p!=&Nil; p=p->cdr){
 		if(p->car->type != OINT)
@@ -180,7 +180,7 @@ fndiv(Object *env, Object *list)
 {
     Object *p=evallist(env, list);
     if(p->car->type != OINT)
-        error("/ take only [INT]");
+		error("/ take only [INT]");
 	long sum = p->car->num;
     for(p=p->cdr;p!=&Nil; p=p->cdr){
 		if(p->car->type != OINT)
@@ -196,8 +196,8 @@ Object*
 fnmod(Object *env, Object *list)
 {
     Object *p=evallist(env, list);
-    if(p->car->type != OINT)
-        error("%% take only [INT]");
+	if(p->car->type != OINT)
+		error("%% take only [INT]");
 	long sum = p->car->num;
     for(p=p->cdr;p!=&Nil; p=p->cdr){
 		if(p->car->type != OINT)
@@ -210,36 +210,56 @@ fnmod(Object *env, Object *list)
 }
 
 long
-eq(Object *env, Object *a, Object *b)
+cmp(Object *env, Object *list)
 {
-    if(a == b)
-        return 1;
-    if(a->type != b->type)
-        return 0;
-    switch(a->type){
-    default: error("eq only compare [INT]");
-    case OSTRING: return strequal(a, b);
-    case OINT: return a->num == b->num;
-    }
+    Object *a = eval(env, list->car);
+    Object *b = eval(env, list->cdr->car);
+	if(a->type != OINT || b->type != OINT)
+		error("cmp only take [INT]");
+	return a->num - b->num;	
 }
 
 Object*
 fneq(Object *env, Object *list)
 {
-    Object *a = eval(env, list->car);
-    Object *b = eval(env, list->cdr->car);
-    return newint(gc, eq(env, a, b));
+	return newint(gc, cmp(env, list) == 0);
 }
 
-/*
- * (if ((cond) val)* )
- * (if ((eq x y) 0) ((eq x z ) 1) (default))
- */
+Object*
+fnge(Object *env, Object *list)
+{
+	return newint(gc, cmp(env, list) >= 0);
+}
+
+Object*
+fngt(Object *env, Object *list)
+{
+	return newint(gc, cmp(env, list) > 0);
+}
+
+Object*
+fnle(Object *env, Object *list)
+{
+	return newint(gc, cmp(env, list) <= 0);
+}
+
+Object*
+fnlt(Object *env, Object *list)
+{
+	return newint(gc, cmp(env, list) < 0);
+}
+
+Object*
+fnne(Object *env, Object *list)
+{
+	return newint(gc, cmp(env, list) != 0);
+}
+
 Object*
 fnif(Object *env, Object *list)
 {
     if(list == 0 || list == &Nil)
-        return newint(gc, 0);
+		error("Malformed if stmt");
     Object *t = eval(env, list->car->car);
     if(istrue(t))
         return eval(env, list->car->cdr->car);

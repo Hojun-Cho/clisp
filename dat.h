@@ -68,10 +68,10 @@ typedef struct
 	/* objects */
 	struct{
 		Object *objs;
+		Object *freed;
 		u64 ob;
 		u64 oe;
 		u64 op;
-		Object *freed;
 	};
 	/* string  */
 	struct{
@@ -95,4 +95,9 @@ extern Object Cons;
 extern Object Define;
 extern Object Setq;
 extern Object Eq;
+extern Object Ne;
 extern Object If;
+extern Object Ge;
+extern Object Le;
+extern Object Lt;
+extern Object Gt;
