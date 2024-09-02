@@ -19,11 +19,11 @@ extern Object* fnlambda(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
 extern Object* fnundef(Object *, Object *);
+extern Object* fnquote(Object *, Object *);
+extern Object* fncar(Object *, Object *);
+extern Object* fncdr(Object *, Object *);
+extern Object* fncons(Object *, Object *);
 /*extern Object* fnminus(Object *, Object *);*/
-/*extern Object* fncons(Object *, Object *);*/
-/*extern Object* fnquote(Object *, Object *);*/
-/*extern Object* fncar(Object *, Object *);*/
-/*extern Object* fncdr(Object *, Object *);*/
 
 Bltinfn
 bltinlookup(Object *obj)
@@ -37,11 +37,11 @@ bltinlookup(Object *obj)
 		{&Plus , fnplus},
 		{&Define ,fndefine},
 		{&Setq ,fnsetq},
+		{&Quote ,fnquote},
+		{&Car ,fncar},
+		{&Cdr ,fncdr},
+		{&Cons ,fncons},
 		{&Minus ,0},
-		{&Cons ,0},
-		{&Quote ,0},
-		{&Car ,0},
-		{&Cdr ,0},
         {0},
 	};
 

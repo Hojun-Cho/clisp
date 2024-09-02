@@ -6,7 +6,7 @@
 
 #define SYMBOL_LEN 64
 
-const char symbolchars[] = "*-=+<>";
+const char symbolchars[] = "*-=+<>'";
 
 static Object* lparlist(void);
 static Object* list(void);

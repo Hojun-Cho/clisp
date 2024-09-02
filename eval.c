@@ -84,6 +84,42 @@ fndefine(Object *env, Object *list)
 }
 
 Object*
+fnquote(Object *env, Object *list)
+{
+	if(exprlen(list)!=1)
+		error("Malformed quote");
+    return list->car;
+}
+
+Object*
+fncar(Object *env, Object *list)
+{
+    list = evallist(env, list);
+    if(list->car->type != OCELL || list->cdr != &Nil)
+		error("Malformed Car");
+    return list->car->car;
+}
+
+Object*
+fncdr(Object *env, Object *list)
+{
+    list = evallist(env, list);
+    if(list->car->type != OCELL || list->cdr != &Nil)
+		error("Malformed Car");
+    return list->car->cdr;
+}
+
+Object*
+fncons(Object *env, Object *list)
+{
+    if(exprlen(list) != 2)
+        error("Malformoed cons");
+    list = evallist(env, list);
+    list->cdr = list->cdr->car;
+    return list;
+}
+
+Object*
 fnplus(Object *env, Object *list)
 {
 	long sum = 0;
