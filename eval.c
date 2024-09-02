@@ -160,6 +160,55 @@ fnplus(Object *env, Object *list)
     }
 }
 
+Object*
+fnmul(Object *env, Object *list)
+{
+    Object *p=evallist(env, list);
+    if(p->car->type != OINT)
+        error("* take only [INT]");
+	long sum = p->car->num;
+    for(p=p->cdr;p!=&Nil; p=p->cdr){
+		if(p->car->type != OINT)
+			error("* take only [INT]");
+		sum *= p->car->num;
+	}
+	return newint(gc, sum);
+}
+
+Object*
+fndiv(Object *env, Object *list)
+{
+    Object *p=evallist(env, list);
+    if(p->car->type != OINT)
+        error("/ take only [INT]");
+	long sum = p->car->num;
+    for(p=p->cdr;p!=&Nil; p=p->cdr){
+		if(p->car->type != OINT)
+			error("/ take only [INT]");
+        if(p->car->num == 0)
+            error("Can't div zero");
+		sum /= p->car->num;
+	}
+	return newint(gc, sum);
+}
+
+Object*
+fnmod(Object *env, Object *list)
+{
+    Object *p=evallist(env, list);
+    if(p->car->type != OINT)
+        error("%% take only [INT]");
+	long sum = p->car->num;
+    for(p=p->cdr;p!=&Nil; p=p->cdr){
+		if(p->car->type != OINT)
+			error("%% take only [INT]");
+        if(p->car->num == 0)
+            error("Can't mod zero");
+		sum %= p->car->num;
+	}
+	return newint(gc, sum);
+}
+
 long
 eq(Object *env, Object *a, Object *b)
 {

@@ -4,6 +4,9 @@
 Object Nil	= (Object){.type=OSYMBOL, .sym="nil"};
 Object Minus= (Object){.type=OBLTIN, .sym="-"};
 Object Plus	= (Object){.type=OBLTIN, .sym="+"};
+Object Mul	= (Object){.type=OBLTIN, .sym="*"};
+Object Div	= (Object){.type=OBLTIN, .sym="/"};
+Object Mod	= (Object){.type=OBLTIN, .sym="%"};
 Object Lambda= (Object){.type=OBLTIN, .sym="lambda"};
 Object Car	= (Object){.type=OBLTIN, .sym="car"};
 Object Cdr	= (Object){.type=OBLTIN, .sym="cdr"};
@@ -15,6 +18,9 @@ Object Eq	= (Object){.type=OBLTIN, .sym="eq"};
 Object If	= (Object){.type=OBLTIN, .sym="if"};
 
 extern Object* fnplus(Object *, Object *);
+extern Object* fnmul(Object *, Object *);
+extern Object* fndiv(Object *, Object *);
+extern Object* fnmod(Object *, Object *);
 extern Object* fnlambda(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
@@ -37,6 +43,9 @@ bltinlookup(Object *obj)
 	}bltins[] = {
 		{&Lambda , fnlambda},
 		{&Plus , fnplus},
+		{&Mul , fnmul},
+		{&Mod , fnmod},
+		{&Div , fndiv},
 		{&Define ,fndefine},
 		{&Setq ,fnsetq},
 		{&Quote ,fnquote},
