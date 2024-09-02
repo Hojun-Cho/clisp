@@ -3,7 +3,6 @@
 typedef uintptr_t u64;
 typedef struct Object Object;
 typedef Object* (*Bltinfn)(Object *env, Object *args);
-typedef struct Object Object;
 
 enum OType
 {
@@ -24,6 +23,7 @@ struct Object
 	enum OType type; /* type */
 	int flag; 		/* flag */
 	Object *next;   /* for gc */
+	Object *forward;
 	union{
 		/* int */
 		long num;
@@ -60,6 +60,7 @@ struct Object
  */
 typedef struct
 {
+	int running;
 	void *memory;
 	u64 cap;
 	u64 using;
@@ -79,6 +80,7 @@ typedef struct
 	};
 }GC;
 
+extern GC *gc;
 extern Object Nil;
 extern Object True;
 extern Object False;

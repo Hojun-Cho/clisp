@@ -4,26 +4,26 @@
 #include <string.h>
 
 Object*
-newint(long val)
+newint(GC *gc, long val)
 {
-	Object *obj = newobj(OINT);
+	Object *obj = newobj(gc, OINT);
 	obj->num = val;
 	return obj;
 }
 
 Object*
-newcons(Object *car, Object *cdr)
+newcons(GC *gc, Object *car, Object *cdr)
 {
-	Object *obj = newobj(OCELL);
+	Object *obj = newobj(gc, OCELL);
 	obj->car = car;
 	obj->cdr = cdr;
 	return obj;
 }
 
 Object*
-newenv(Object* name, Object *vars, Object *up)
+newenv(GC *gc, Object* name, Object *vars, Object *up)
 {
-	Object *obj = newobj(OENV);
+	Object *obj = newobj(gc, OENV);
 	obj->name = name;
 	obj->up = up;
 	obj->vars = vars;
@@ -31,16 +31,16 @@ newenv(Object* name, Object *vars, Object *up)
 }
 
 Object*
-newacons(Object *x, Object *y, Object *z)
+newacons(GC *gc, Object *x, Object *y, Object *z)
 {
-	Object *cons = newcons(x, y);
-	return newcons(cons, z);
+	Object *cons = newcons(gc, x, y);
+	return newcons(gc, cons ,z);
 }
 
 Object*
-newfn(Object *env, Object *params, Object *body)
+newfn(GC *gc, Object *env, Object *params, Object *body)
 {
-	Object *fn = newobj(OFUNC);
+	Object *fn = newobj(gc, OFUNC);
 	fn->params = params;
 	fn->body = body;
 	fn->env = env; 
@@ -48,7 +48,7 @@ newfn(Object *env, Object *params, Object *body)
 }
 
 Object*
-newsymbol(char *str, int len)
+newsymbol(GC *gc, char *str, int len)
 {
 	static Object *syms[] = {
 		&Nil, &True, &False, &Minus, &Plus,
@@ -59,18 +59,18 @@ newsymbol(char *str, int len)
 		if(strlen(c->sym)==len && memcmp(c->sym, str, len) == 0)
 			return c;
 	}
-	Object *obj = newobj(OIDENT);
-	obj->beg = gcalloc(len + 1);
+	Object *obj = newobj(gc, OIDENT);
+	obj->beg = gcalloc(gc, len + 1);
 	obj->end = obj->ptr = obj->beg + len;	
 	memcpy(obj->beg, str, len+1);
 	return obj;
 }
 
 Object*
-newstr(int len)
+newstr(GC *gc, int len)
 {
-	Object *obj = newobj(OSTRING); 
-	obj->ptr = obj->beg = gcalloc(len + 1);
+	Object *obj = newobj(gc, OSTRING); 
+	obj->ptr = obj->beg = gcalloc(gc, len + 1);
 	obj->end = obj->beg + len;
 	return obj; 
 }

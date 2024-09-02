@@ -62,7 +62,7 @@ symbol(char c)
 		buf[len++] = get();
 	}
 	buf[len] = 0;
-	return newsymbol(buf, len);
+	return newsymbol(gc, buf, len);
 }
 
 static long
@@ -79,14 +79,14 @@ quote(void)
 {
 	Object *car = &Quote;
 	Object *ccdr = list();
-	Object *cdr = newcons(ccdr, &Nil);
-	return newcons(car, cdr);
+	Object *cdr = newcons(gc, ccdr, &Nil);
+	return newcons(gc, car, cdr);
 }
 
 static Object*
 string(void)
 {
-	Object *str = newstr(16);
+	Object *str = newstr(gc, 16);
 	while(lookup() != '\"'){
 		strputc(str, get());
 	}
@@ -98,11 +98,11 @@ static Object*
 atom(char c)
 {
 	if(isdigit(c))
-		return newint(number());
+		return newint(gc, number());
 	get();
 	if(c == '-'){
 		if(isdigit(lookup()))
-			return newint(-number());
+			return newint(gc, -number());
 		else
 			return symbol('-');
 	}
@@ -113,6 +113,7 @@ atom(char c)
 		return symbol(c);
 	}
 	error("bad char in list '%c'", c);
+	return 0;
 }
 
 static Object*
@@ -126,20 +127,20 @@ lparlist(void)
 		get();
 		car = quote();
 		cdr = lparlist();
-		return newcons(car, cdr);
+		return newcons(gc, car, cdr);
 	case '.':
 		get();	
 		return list();
 	case '(':
 		car = list();
 		cdr = lparlist();
-		return newcons(car, cdr);
+		return newcons(gc, car, cdr);
 	case ')':
 		return &Nil;
 	}
 	car = atom(c);
 	cdr = lparlist();
-	return newcons(car ,cdr);
+	return newcons(gc, car ,cdr);
 }
 
 static Object*

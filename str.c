@@ -6,7 +6,7 @@ void
 strraise(Object *s, int ns)
 {
 	int pos = s->ptr - s->beg;
-	char *ptr = gcralloc(s->beg, ns + 1);
+	char *ptr = gcralloc(gc, s->beg, ns + 1);
 	s->beg = ptr;
 	s->ptr = s->beg + pos;
 	s->end = s->beg + ns;

@@ -42,7 +42,7 @@ bltinlookup(Object *obj)
 		{&Quote ,0},
 		{&Car ,0},
 		{&Cdr ,0},
-		0,
+        {0},
 	};
 
 	for(int i = 0; bltins[i].sym; ++i){
