@@ -3,33 +3,41 @@
 #include <string.h>
 
 void
-strraise(Object *s, int ns)
+strinit(Object *s, Object *p)
 {
-	int pos = s->ptr - s->beg;
-	char *ptr = gcralloc(gc, s->beg, ns + 1);
-	s->beg = ptr;
-	s->ptr = s->beg + pos;
-	s->end = s->beg + ns;
-}
-
-void
-strputc(Object *s, int c)
-{
-	if(s->ptr >= s->end)
-		strraise(s, (s->end - s->beg) * 2);
-	*s->ptr++ = c;
+	for(char *c = p->beg ; c < p->ptr;)
+		*s->ptr++ = *c++;
 	*s->ptr = 0;
 }
 
-void
-strputs(Object *s, char *ptr)
+Object*
+strraise(Object *s, int ns)
 {
-	int l = strlen(ptr);
-	if(s->ptr + l >= s->end)
-		strraise(s, s->end - s->beg + l);
-	memcpy(s->ptr, ptr, l);
+	Object *dst = newstr(gc, ns + 1);
+	strinit(dst, s);
+	return dst;
+}
+
+Object*
+strputc(Object *s, int c)
+{
+	if(s->ptr + 1 >= s->end)
+		s = strraise(s, (s->end - s->beg) * 2);
+	*s->ptr++ = c;
+	*s->ptr = 0;
+	return s;
+}
+
+Object*
+strputs(Object *s, Object *ptr)
+{
+	int l = ptr->ptr - ptr->beg;
+	if(s->ptr + l>= s->end)
+		s = strraise(s, s->end - s->beg + l);
+	memcpy(s->ptr, ptr->beg, l);
 	s->ptr += l;
-	s->ptr[0] = 0;
+	*s->ptr = 0;
+	return s;
 }
 
 int

@@ -88,7 +88,7 @@ string(void)
 {
 	Object *str = newstr(gc, 16);
 	while(lookup() != '\"'){
-		strputc(str, get());
+		str = strputc(str, get());
 	}
 	expect('\"');
 	return str;

@@ -16,16 +16,16 @@ Object* newstr(GC *,int);
 Object* newfn(GC *,Object *env, Object *params, Object *body);
 
 /* gc.c */
-Object* newobj(GC *,enum OType);
-void* gcalloc(GC *,int);
-void* gcralloc(GC *, void*, int);
 GC* newgc(void *top, int cap);
 void gcrun(GC *);
+void* gcalloc(GC *gc, int sz);
+void printgc(char *, GC *);
 
 /* str.c */
-void strputc(Object*, int);
-void strputs(Object*, char*);
+Object* strputc(Object*, int);
+Object* strputs(Object*, Object*);
 int strequal(Object*, Object*);
+void strinit(Object *s, Object *str);
 
 /* error.c */
 void panic(char *fmt, ...);

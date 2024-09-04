@@ -1,28 +1,28 @@
 #include "dat.h"
 #include "fn.h"
 
-Object Nil	= (Object){.type=OSYMBOL, .sym="nil"};
-Object Minus= (Object){.type=OBLTIN, .sym="-"};
-Object Plus	= (Object){.type=OBLTIN, .sym="+"};
-Object Mul	= (Object){.type=OBLTIN, .sym="*"};
-Object Div	= (Object){.type=OBLTIN, .sym="/"};
-Object Mod	= (Object){.type=OBLTIN, .sym="%"};
+Object Nil	= (Object){.type=OSYMBOL, .beg="nil"};
+Object Minus= (Object){.type=OBLTIN, .beg="-"};
+Object Plus	= (Object){.type=OBLTIN, .beg="+"};
+Object Mul	= (Object){.type=OBLTIN, .beg="*"};
+Object Div	= (Object){.type=OBLTIN, .beg="/"};
+Object Mod	= (Object){.type=OBLTIN, .beg="%"};
 
-Object Ge	= (Object){.type=OBLTIN, .sym= ">="};
-Object Le	= (Object){.type=OBLTIN, .sym= "<="};
-Object Lt	= (Object){.type=OBLTIN, .sym= "<"};
-Object Gt	= (Object){.type=OBLTIN, .sym= ">"};
-Object Ne	= (Object){.type=OBLTIN, .sym= "!="};
-Object Eq	= (Object){.type=OBLTIN, .sym= "=="};
+Object Ge	= (Object){.type=OBLTIN, .beg= ">="};
+Object Le	= (Object){.type=OBLTIN, .beg= "<="};
+Object Lt	= (Object){.type=OBLTIN, .beg= "<"};
+Object Gt	= (Object){.type=OBLTIN, .beg= ">"};
+Object Ne	= (Object){.type=OBLTIN, .beg= "!="};
+Object Eq	= (Object){.type=OBLTIN, .beg= "=="};
 
-Object Lambda= (Object){.type=OBLTIN, .sym="lambda"};
-Object Car	= (Object){.type=OBLTIN, .sym="car"};
-Object Cdr	= (Object){.type=OBLTIN, .sym="cdr"};
-Object Quote= (Object){.type=OBLTIN, .sym="'"};
-Object Cons	= (Object){.type=OBLTIN, .sym="cons"};
-Object Define= (Object){.type=OBLTIN, .sym="define"};
-Object Setq	= (Object){.type=OBLTIN, .sym="setq"};
-Object If	= (Object){.type=OBLTIN, .sym="if"};
+Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
+Object Car	= (Object){.type=OBLTIN, .beg="car"};
+Object Cdr	= (Object){.type=OBLTIN, .beg="cdr"};
+Object Quote= (Object){.type=OBLTIN, .beg="'"};
+Object Cons	= (Object){.type=OBLTIN, .beg="cons"};
+Object Define= (Object){.type=OBLTIN, .beg="define"};
+Object Setq	= (Object){.type=OBLTIN, .beg="setq"};
+Object If	= (Object){.type=OBLTIN, .beg="if"};
 
 extern Object* fnplus(Object *, Object *);
 extern Object* fnmul(Object *, Object *);
@@ -50,7 +50,7 @@ bltinlookup(Object *obj)
 {
 	static struct
 	{
-		Object *sym;
+		Object *beg;
 		Bltinfn fn;
 	}bltins[] = {
 		{&Lambda , fnlambda},
@@ -75,8 +75,8 @@ bltinlookup(Object *obj)
         {0},
 	};
 
-	for(int i = 0; bltins[i].sym; ++i){
-		if(obj == bltins[i].sym)
+	for(int i = 0; bltins[i].beg; ++i){
+		if(obj == bltins[i].beg)
 			return bltins[i].fn;
 	}
 	return 0;

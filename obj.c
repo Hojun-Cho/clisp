@@ -3,10 +3,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Object*
+newobj(GC *gc, enum OType type, int sz)
+{
+	Object *obj = gcalloc(gc, sizeof(Object) + sz);
+	obj->type = type;
+	return obj;
+}
+
 Object*
 newint(GC *gc, long val)
 {
-	Object *obj = newobj(gc, OINT);
+	Object *obj = newobj(gc, OINT, 0);
 	obj->num = val;
 	return obj;
 }
@@ -14,7 +22,7 @@ newint(GC *gc, long val)
 Object*
 newcons(GC *gc, Object *car, Object *cdr)
 {
-	Object *obj = newobj(gc, OCELL);
+	Object *obj = newobj(gc, OCELL, 0);
 	obj->car = car;
 	obj->cdr = cdr;
 	return obj;
@@ -23,7 +31,7 @@ newcons(GC *gc, Object *car, Object *cdr)
 Object*
 newenv(GC *gc, Object* name, Object *vars, Object *up)
 {
-	Object *obj = newobj(gc, OENV);
+	Object *obj = newobj(gc, OENV, 0);
 	obj->name = name;
 	obj->up = up;
 	obj->vars = vars;
@@ -40,7 +48,7 @@ newacons(GC *gc, Object *x, Object *y, Object *z)
 Object*
 newfn(GC *gc, Object *env, Object *params, Object *body)
 {
-	Object *fn = newobj(gc, OFUNC);
+	Object *fn = newobj(gc, OFUNC, 0);
 	fn->params = params;
 	fn->body = body;
 	fn->env = env; 
@@ -57,21 +65,22 @@ newsymbol(GC *gc, char *str, int len)
 	};
 	for(int i = 0; i < sizeof(syms)/sizeof(syms[0]); ++i){
 		Object *c = syms[i];
-		if(strlen(c->sym)==len && memcmp(c->sym, str, len) == 0)
+		if(strlen(c->beg)==len && memcmp(c->beg, str, len) == 0)
 			return c;
 	}
-	Object *obj = newobj(gc, OIDENT);
-	obj->beg = gcalloc(gc, len + 1);
-	obj->end = obj->ptr = obj->beg + len;	
-	memcpy(obj->beg, str, len+1);
+	Object *obj = newobj(gc, OIDENT, len + 1);
+	obj->ptr = obj->beg = (char*)&obj[1];
+	obj->end = obj->beg + len;
+	memcpy(obj->beg, str, len + 1);
+	obj->ptr += len;
 	return obj;
 }
 
 Object*
 newstr(GC *gc, int len)
 {
-	Object *obj = newobj(gc, OSTRING); 
-	obj->ptr = obj->beg = gcalloc(gc, len + 1);
+	Object *obj = newobj(gc, OSTRING, len + 1);
+	obj->ptr = obj->beg = (char*)&obj[1];
 	obj->end = obj->beg + len;
-	return obj; 
+	return obj;
 }

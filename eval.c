@@ -144,7 +144,7 @@ plusstr(Object *env, Object *p)
     for(;p!=&Nil; p=p->cdr){
 		if(p->car->type != OSTRING)
 			error("+ take only number");
-        strputs(str, p->car->beg);
+        str = strputs(str, p->car);
 	}
     return str;
 }

@@ -32,7 +32,7 @@ SExprint(Object *obj)
 		break;
 	case OBLTIN:
 	case OSYMBOL:
-		printf("%s", obj->sym);
+		printf("%s", obj->beg);
 		break;
 	case OENV:
 		printf("<env>");
@@ -71,6 +71,7 @@ loop(void)
 	while(1){
 		Object *res = nextexpr();
 		res = eval(env, res);
+		printgc("status", gc);
 		printf("=============res===========\n");
 		printexpr(res);
 		printf("=============env===========\n");
@@ -82,6 +83,6 @@ loop(void)
 int
 main(int argc, char *argv[])
 {
-	gc = newgc(&argc, 4000);
+	gc = newgc(&argc, 500);
 	loop();
 }

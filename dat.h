@@ -1,19 +1,17 @@
-#include <stdint.h>
-
-typedef uintptr_t u64;
+typedef struct GC GC;
 typedef struct Object Object;
 typedef Object* (*Bltinfn)(Object *env, Object *args);
 
 enum OType
 {
-	OERROR,
-	OCELL,
-	OSYMBOL,
-	OIDENT,
-	OINT,
-	OSTRING,
-	OLAMBDA,
+	ONONE,
 	OBLTIN,
+	OSYMBOL,
+	OCELL,
+	OIDENT,
+	OSTRING,
+	OINT,
+	OLAMBDA,
 	OFUNC,
 	OENV,
 };
@@ -22,7 +20,6 @@ struct Object
 {
 	enum OType type; /* type */
 	int flag; 		/* flag */
-	Object *next;   /* for gc */
 	Object *forward;
 	union{
 		/* int */
@@ -32,8 +29,7 @@ struct Object
 			Object *car;
 			Object *cdr;
 		};
-		/* string & ident */
-		char *sym;
+		/* string & ident  & symbol */
 		struct{
 			char *beg;
 			char *ptr;
@@ -53,32 +49,6 @@ struct Object
 		};
 	};
 };
-
-/*
- *0  ~ 64  : for object 
- *64 ~ 100 : for string 
- */
-typedef struct
-{
-	int running;
-	void *memory;
-	u64 cap;
-	u64 using;
-	u64 top;
-	/* objects */
-	struct{
-		Object *objs;
-		Object *freed;
-		u64 ob;
-		u64 oe;
-		u64 op;
-	};
-	/* string  */
-	struct{
-		u64 sb;
-		u64 se;
-	};
-}GC;
 
 extern GC *gc;
 extern Object Nil;
