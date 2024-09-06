@@ -71,8 +71,9 @@ cloneobj(GC *dst, GC *src, Object *obj)
 		p->vars = cloneobj(dst, src, obj->vars);
 		p->up = cloneobj(dst, src, obj->up);
 		break;
+	case OMACRO:
 	case OFUNC:
-		obj->forward = p = newfn(dst, &Nil, &Nil, &Nil);
+		obj->forward = p = newfn(dst, &Nil, &Nil, &Nil, obj->type);
 		p->params = cloneobj(dst, src, obj->params);
 		p->body = cloneobj(dst, src, obj->body);
 		p->env = cloneobj(dst, src, obj->env);
@@ -132,6 +133,7 @@ mark(GC *gc, Object *obj)
 		mark(gc, obj->vars);
 		mark(gc, obj->up);
 		break;
+	case OMACRO:
 	case OFUNC:
 		mark(gc, obj->params);
 		mark(gc, obj->body);

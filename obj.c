@@ -46,9 +46,10 @@ newacons(GC *gc, Object *x, Object *y, Object *z)
 }
 
 Object*
-newfn(GC *gc, Object *env, Object *params, Object *body)
+newfn(GC *gc, Object *env, Object *params, Object *body, enum OType type)
 {
-	Object *fn = newobj(gc, OFUNC, 0);
+	Object *fn = newobj(gc, type, 0);
+	fn->type = type;
 	fn->params = params;
 	fn->body = body;
 	fn->env = env; 
@@ -61,7 +62,7 @@ newsymbol(GC *gc, char *str, int len)
 	static Object *syms[] = {
 		&Nil,  &Minus, &Plus, &Mul, &Mod, &Div, &Ge, &Le,
 		&Lt, &Gt, &Ne, &Lambda, &Car, &Cdr, &Quote, &Cons,
-		&Define, &Setq, &Eq, &If,
+		&Define, &Setq, &Eq, &If, &Defn, &Macro, &Progn,
 	};
 	for(int i = 0; i < sizeof(syms)/sizeof(syms[0]); ++i){
 		Object *c = syms[i];

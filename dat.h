@@ -13,6 +13,7 @@ enum OType
 	OINT,
 	OLAMBDA,
 	OFUNC,
+	OMACRO,
 	OENV,
 };
 
@@ -63,6 +64,9 @@ extern Object Cdr;
 extern Object Quote;
 extern Object Cons;
 extern Object Define;
+extern Object Progn;
+extern Object Macro;
+extern Object Defn;
 extern Object Setq;
 extern Object Eq;
 extern Object Ne;

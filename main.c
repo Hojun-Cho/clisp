@@ -38,6 +38,9 @@ SExprint(Object *obj)
 		printf("<env>");
 		SExprint(obj->vars);
 		break;
+	case OMACRO:
+		printf("<macro>");
+		goto func;
 	case OLAMBDA:
 		printf("<lambda>");
 		goto func;
@@ -70,6 +73,7 @@ loop(void)
 	}
 	while(1){
 		Object *res = nextexpr();
+		printexpr(res);
 		res = eval(env, res);
 		printgc("status", gc);
 		printf("=============res===========\n");
@@ -83,6 +87,6 @@ loop(void)
 int
 main(int argc, char *argv[])
 {
-	gc = newgc(&argc, 500);
+	gc = newgc(&argc, 4000);
 	loop();
 }

@@ -16,11 +16,14 @@ Object Ne	= (Object){.type=OBLTIN, .beg= "!="};
 Object Eq	= (Object){.type=OBLTIN, .beg= "=="};
 
 Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
+Object Progn=(Object){.type=OBLTIN, .beg="progn"};
 Object Car	= (Object){.type=OBLTIN, .beg="car"};
 Object Cdr	= (Object){.type=OBLTIN, .beg="cdr"};
 Object Quote= (Object){.type=OBLTIN, .beg="'"};
 Object Cons	= (Object){.type=OBLTIN, .beg="cons"};
 Object Define= (Object){.type=OBLTIN, .beg="define"};
+Object Macro= (Object){.type=OBLTIN, .beg="macro"};
+Object Defn= (Object){.type=OBLTIN, .beg="defn"};
 Object Setq	= (Object){.type=OBLTIN, .beg="setq"};
 Object If	= (Object){.type=OBLTIN, .beg="if"};
 
@@ -29,7 +32,10 @@ extern Object* fnmul(Object *, Object *);
 extern Object* fndiv(Object *, Object *);
 extern Object* fnmod(Object *, Object *);
 extern Object* fnlambda(Object *, Object *);
+extern Object* fnprogn(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
+extern Object* fnmacro(Object *, Object *);
+extern Object* fndefn(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
 extern Object* fnundef(Object *, Object *);
 extern Object* fnquote(Object *, Object *);
@@ -54,11 +60,14 @@ bltinlookup(Object *obj)
 		Bltinfn fn;
 	}bltins[] = {
 		{&Lambda , fnlambda},
+		{&Progn , fnprogn},
 		{&Plus , fnplus},
 		{&Mul , fnmul},
 		{&Mod , fnmod},
 		{&Div , fndiv},
 		{&Define ,fndefine},
+		{&Macro ,fnmacro},
+		{&Defn ,fndefn},
 		{&Setq ,fnsetq},
 		{&Quote ,fnquote},
 		{&Car ,fncar},

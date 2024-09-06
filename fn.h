@@ -13,7 +13,7 @@ Object* newenv(GC *,Object*name, Object *vars, Object *up);
 Object* newacons(GC *,Object*, Object*, Object*);
 Object* newsymbol(GC *,char*, int);
 Object* newstr(GC *,int);
-Object* newfn(GC *,Object *env, Object *params, Object *body);
+Object* newfn(GC *,Object *env, Object *params, Object *body, enum OType type);
 
 /* gc.c */
 GC* newgc(void *top, int cap);

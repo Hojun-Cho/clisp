@@ -37,22 +37,8 @@ find(Object *env, Object *obj)
 	return 0;
 }
 
-static Object*
-enter(Object *env, Object *vars, Object *args)
-{
-	Object *map = &Nil;
-	for(;vars->type==OCELL; vars=vars->cdr,args=args->cdr){
-		if(args->type!=OCELL)
-			error("Cna't apply function argment dose not match");
-		Object *id  = vars->car;
-		Object *val = args->car;
-		map = newacons(gc, id, val, map);
-	}
-	return newenv(gc, &Nil, map, env);
-}
-
 Object*
-fnlambda(Object *env, Object *l)
+_newfn(Object *env, Object *l, enum OType type)
 {
 	if(l->type!=OCELL || islist(l->car)==0 || l->cdr->type!=OCELL)
 		error("malformed function");
@@ -62,7 +48,46 @@ fnlambda(Object *env, Object *l)
 	}
 	Object *params = l->car;
 	Object *body = l->cdr;
-	return newfn(gc, env, params, body);
+	return newfn(gc, env, params, body, type);
+}
+
+Object*
+fndefn(Object *env, Object *list)
+{
+	Object *fn = _newfn(env, list->cdr, OFUNC);
+	env->vars = newacons(gc, list->car, fn, env->vars);
+	return env->vars;
+}
+
+Object*
+fnlambda(Object *env, Object *l)
+{
+	return _newfn(env, l, OFUNC);
+}
+
+Object*
+fnmacro(Object *env, Object *l)
+{
+	Object *macro = _newfn(env, l->cdr, OMACRO);
+	env->vars = newacons(gc, l->car, macro, env->vars);
+	return env->vars;
+}
+
+static Object*
+progn(Object *env, Object *list)
+{
+	Object *r = 0;
+	for(Object *p=list; p!=&Nil; p=p->cdr){
+		r = p->car;
+		r = eval(env, r);
+	}
+	return r;
+}
+
+Object*
+fnprogn(Object *env, Object *list)
+{
+	return progn(env, list);
 }
 
 Object*
@@ -258,12 +283,11 @@ fnne(Object *env, Object *list)
 Object*
 fnif(Object *env, Object *list)
 {
-    if(list == 0 || list == &Nil)
-		error("Malformed if stmt");
-    Object *t = eval(env, list->car->car);
-    if(istrue(t))
-        return eval(env, list->car->cdr->car);
-    return fnif(env, list->cdr);
+	Object *test = list->car;
+	test = eval(env, test);
+	if(istrue(test)) return eval(env, list->cdr->car);
+	if(list->cdr->cdr == &Nil) return &Nil;
+	return eval(env, list->cdr->cdr->car);
 }
 
 static Object*
@@ -279,15 +303,38 @@ evallist(Object *env, Object *list)
 }
 
 static Object*
+enter(Object *env, Object *vars, Object *args)
+{
+	Object *map = &Nil;
+	for(;vars->type==OCELL; vars=vars->cdr,args=args->cdr){
+		if(args->type!=OCELL)
+			error("Cna't apply function argment dose not match");
+		Object *id  = vars->car;
+		Object *val = args->car;
+		map = newacons(gc, id, val, map);
+	}
+	if(vars != &Nil)
+		map = newacons(gc, vars, args, map);
+	return newenv(gc, &Nil, map, env);
+}
+
+static Object*
 applyfn(Object *fn, Object *args)
 {
 	Object *env = enter(fn->env, fn->params, args);
+	return progn(env, fn->body);
+}
+
+static Object*
+applymacro(Object *env, Object* fn, Object *args)
+{
+	Object *nenv = enter(fn->env, fn->params, args);
 	Object *r = 0;
 	for(Object *p=fn->body; p!=&Nil; p=p->cdr){
 		r = p->car;
-		r = eval(env, r);
+		r = eval(nenv, r);
 	}
-	return r;
+	return eval(env, r);
 }
 
 static Object*
@@ -330,6 +377,8 @@ eval(Object *env, Object *obj)
 		}
 	case OCELL:{
 			Object *fn = eval(env, obj->car);
+			if(fn->type == OMACRO)
+				return applymacro(env, fn, obj->cdr);
 			if(fn->type!=OFUNC&&fn->type!=OBLTIN)
 				error("expected function type");
 			Object *res = apply(env, fn, obj->cdr);
