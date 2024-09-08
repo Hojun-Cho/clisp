@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <setjmp.h>
 #include <string.h>
-#include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
 

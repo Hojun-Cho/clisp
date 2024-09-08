@@ -1,7 +1,6 @@
 #include "dat.h"
 #include "fn.h"
 #include <setjmp.h>
-#include <stdio.h>
 
 jmp_buf *errptr;
 GC *gc;
@@ -63,16 +62,17 @@ printexpr(Object *obj)
 }
 
 static void
-loop(void)
+loop(Object *env, FILE *f)
 {
-	Object *env = newenv(gc, &Nil, &Nil, &Nil);
     jmp_buf buf;
     errptr = &buf;
 	if(setjmp(buf) == 1){
-		skipline();
+		if(feof(f))
+			return;
+		skipline(f);
 	}
 	while(1){
-		Object *res = nextexpr();
+		Object *res = nextexpr(f);
 		printexpr(res);
 		res = eval(env, res);
 		printgc("status", gc);
@@ -87,6 +87,7 @@ loop(void)
 int
 main(int argc, char *argv[])
 {
-	gc = newgc(&argc, 4000);
-	loop();
+	gc = newgc(&argc, 400);
+	Object *env = newenv(gc, &Nil, &Nil, &Nil);
+	loop(env, stdin);
 }

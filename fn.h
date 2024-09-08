@@ -1,6 +1,7 @@
+#include <stdio.h>
 /* parser.c */
-Object* nextexpr(void);
-void skipline(void);
+Object* nextexpr(FILE*);
+void skipline(FILE*);
 
 /* eval.c */
 Object* eval(Object *env, Object *expr);

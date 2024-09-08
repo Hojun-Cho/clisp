@@ -1,7 +1,6 @@
 #include "dat.h"
 #include "fn.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <setjmp.h>
 
