@@ -39,7 +39,7 @@ findobj(GC *gc, uintptr_t *stk)
 	return 0;
 }
 
-Object*
+static Object*
 cloneobj(GC *dst, GC *src, Object *obj)
 {
 	if(obj->type==OBLTIN||obj->type==OSYMBOL) return obj;
@@ -81,7 +81,7 @@ cloneobj(GC *dst, GC *src, Object *obj)
 	return p;
 }
 
-void
+static void
 gcraise(GC *src)
 {
 	jmp_buf reg;
@@ -114,7 +114,7 @@ gcraise(GC *src)
 	longjmp(reg, 1);
 }
 
-void
+static void
 mark(GC *gc, Object *obj)
 {
 	if(obj->flag&USING||obj->type==ONONE||obj->type==OSYMBOL||obj->type==OBLTIN)
@@ -141,7 +141,7 @@ mark(GC *gc, Object *obj)
 	}
 }
 
-void
+static void
 gcsweep(GC *gc)
 {
 	for(uintptr_t *p = gc->beg; p < gc->end;)
@@ -161,7 +161,7 @@ gcsweep(GC *gc)
 		}
 }
 
-void
+static void
 gcmark(GC *gc)
 {
 	uintptr_t _ = 0;

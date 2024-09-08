@@ -31,7 +31,7 @@ find(Object *env, Object *obj)
 	return 0;
 }
 
-Object*
+static Object*
 _newfn(Object *env, Object *l, enum OType type)
 {
 	if(l->type!=OCELL || islist(l->car)==0 || l->cdr->type!=OCELL)
@@ -151,7 +151,7 @@ fncons(Object *env, Object *list)
     return list;
 }
 
-Object*
+static Object*
 plusint(Object *env, Object *p)
 {
 	long sum = 0;
@@ -163,7 +163,7 @@ plusint(Object *env, Object *p)
 	return newint(gc, sum);
 }
 
-Object*
+static Object*
 plusstr(Object *env, Object *p)
 {
     Object *str = newstr(gc, 16);
