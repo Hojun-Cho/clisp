@@ -72,15 +72,12 @@ loop(Object *env, FILE *f)
 		skipline(f);
 	}
 	while(1){
+		printf(">> ");
 		Object *res = nextexpr(f);
 		printexpr(res);
 		res = eval(env, res);
 		printgc("status", gc);
-		printf("=============res===========\n");
 		printexpr(res);
-		printf("=============env===========\n");
-		printexpr(env);
-		printf("===========================\n");
 	}
 }
 
@@ -89,5 +86,11 @@ main(int argc, char *argv[])
 {
 	gc = newgc(&argc, 400);
 	Object *env = newenv(gc, &Nil, &Nil, &Nil);
+	for(int i = 1; i < argc; ++i){
+		FILE *f = fopen(argv[i], "r");
+		if(f == 0)
+			panic("can't open %s", argv[i]);
+		loop(env, f);
+	}
 	loop(env, stdin);
 }

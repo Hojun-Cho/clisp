@@ -145,8 +145,12 @@ lparlist(FILE *f)
 static Object*
 list(FILE *f)
 {
+redo:
 	char c = slookup(f);
 	switch(c){
+	case ';':
+		skipline(f);
+		goto redo;
 	case '\'':
 		get(f);
 		return quote(f);
