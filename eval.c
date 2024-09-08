@@ -14,12 +14,6 @@ exprlen(Object *expr)
 	return l;
 }
 
-int
-istrue(Object *o)
-{
-    return o && o->type==OINT && o->num!=0;
-}
-
 static int
 islist(Object *obj)
 {
@@ -280,13 +274,20 @@ fnne(Object *env, Object *list)
 	return newint(gc, cmp(env, list) != 0);
 }
 
+/* if test then else */
 Object*
 fnif(Object *env, Object *list)
 {
+	if(list->type != OCELL || list->cdr->type != OCELL)
+		error("Malformed if stmt");
 	Object *test = list->car;
 	test = eval(env, test);
-	if(istrue(test)) return eval(env, list->cdr->car);
-	if(list->cdr->cdr == &Nil) return &Nil;
+	if(test != &Nil)
+		return eval(env, list->cdr->car);
+	if(list->cdr->cdr == &Nil)
+		return &Nil;
+	if(list->cdr->cdr->type != OCELL)
+		error("Malformed else stmt");
 	return eval(env, list->cdr->cdr->car);
 }
 
