@@ -228,7 +228,7 @@ fnmod(Object *env, Object *list)
 	return newint(gc, sum);
 }
 
-long
+static long
 cmp(Object *env, Object *list)
 {
     Object *a = eval(env, list->car);
@@ -238,51 +238,56 @@ cmp(Object *env, Object *list)
 	return a->num - b->num;	
 }
 
+static Object*
+_newint(int n)
+{
+	if(n == 0)
+		return &Nil;
+	return newint(gc, 1);
+}
+
 Object*
 fneq(Object *env, Object *list)
 {
-	return newint(gc, cmp(env, list) == 0);
+	return _newint(cmp(env, list) == 0);
 }
 
 Object*
 fnge(Object *env, Object *list)
 {
-	return newint(gc, cmp(env, list) >= 0);
+	return _newint(cmp(env, list) >= 0);
 }
 
 Object*
 fngt(Object *env, Object *list)
 {
-	return newint(gc, cmp(env, list) > 0);
+	return _newint(cmp(env, list) > 0);
 }
 
 Object*
 fnle(Object *env, Object *list)
 {
-	return newint(gc, cmp(env, list) <= 0);
+	return _newint(cmp(env, list) <= 0);
 }
 
 Object*
 fnlt(Object *env, Object *list)
 {
-	return newint(gc, cmp(env, list) < 0);
+	return _newint(cmp(env, list) < 0);
 }
 
 Object*
 fnne(Object *env, Object *list)
 {
-	return newint(gc, cmp(env, list) != 0);
+	return _newint(cmp(env, list) != 0);
 }
 
-/* if test then else */
 Object*
 fnif(Object *env, Object *list)
 {
 	if(list->type != OCELL || list->cdr->type != OCELL)
 		error("Malformed if stmt");
-	Object *test = list->car;
-	test = eval(env, test);
-	if(test != &Nil)
+	if(eval(env, list->car)!=&Nil)
 		return eval(env, list->cdr->car);
 	if(list->cdr->cdr == &Nil)
 		return &Nil;
