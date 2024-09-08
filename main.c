@@ -1,9 +1,36 @@
 #include "dat.h"
 #include "fn.h"
 #include <setjmp.h>
+#include <stdarg.h>
+#include <stdlib.h>
 
-jmp_buf *errptr;
+jmp_buf err;
 GC *gc;
+
+void
+panic(char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+	exit(1);
+}
+
+void
+error(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	fprintf(stderr, "ERROR => ");
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+	longjmp(err, 1);
+	exit(1);
+}
 
 static void
 SExprint(Object *obj)
@@ -64,9 +91,7 @@ printexpr(Object *obj)
 static void
 loop(Object *env, FILE *f)
 {
-    jmp_buf buf;
-    errptr = &buf;
-	if(setjmp(buf) == 1){
+	if(setjmp(err) == 1){
 		if(feof(f))
 			return;
 		skipline(f);
