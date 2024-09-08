@@ -99,10 +99,9 @@ loop(Object *env, FILE *f)
 	while(1){
 		printf(">> ");
 		Object *res = nextexpr(f);
-		printexpr(res);
 		res = eval(env, res);
-		printgc("status", gc);
 		printexpr(res);
+		printgc("status", gc);
 	}
 }
 

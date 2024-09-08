@@ -45,12 +45,22 @@ _newfn(Object *env, Object *l, enum OType type)
 	return newfn(gc, env, params, body, type);
 }
 
+static void
+setvar(Object *env, Object *id, Object *val)
+{
+	Object *obj = find(env, id);
+	if(obj == 0)
+		env->vars = newacons(gc, id, val, env->vars);
+	else
+		obj->cdr = val;
+}
+
 Object*
 fndefn(Object *env, Object *list)
 {
 	Object *fn = _newfn(env, list->cdr, OFUNC);
-	env->vars = newacons(gc, list->car, fn, env->vars);
-	return env->vars;
+	setvar(env, list->car, fn);
+	return fn;
 }
 
 Object*
@@ -63,8 +73,8 @@ Object*
 fnmacro(Object *env, Object *l)
 {
 	Object *macro = _newfn(env, l->cdr, OMACRO);
-	env->vars = newacons(gc, l->car, macro, env->vars);
-	return env->vars;
+	setvar(env, l->car, macro);
+	return macro;
 }
 
 static Object*
@@ -101,11 +111,8 @@ fndefine(Object *env, Object *list)
 	if(exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed define");
 	Object *val = eval(env, list->cdr->car);
-	Object *obj = find(env, list->car);
-	if(obj)
-		return obj->cdr = val;
-	env->vars = newacons(gc, list->car, val, env->vars);
-	return env->vars;
+	setvar(env, list->car, val);
+	return val;
 }
 
 Object*
