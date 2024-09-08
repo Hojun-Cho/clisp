@@ -1,6 +1,7 @@
 NAME=lisp
 OFILES=\
 	bltin.o\
+	repl.o\
 	eval.o\
 	main.o\
 	gc.o\

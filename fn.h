@@ -3,6 +3,10 @@
 Object* nextexpr(FILE*);
 void skipline(FILE*);
 
+/* repl.c */
+void repl(Object *env, FILE*, char *pre);
+void readlibs(char *argv[], Object *env);
+
 /* eval.c */
 Object* eval(Object *env, Object *expr);
 
