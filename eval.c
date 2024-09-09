@@ -268,6 +268,14 @@ _newint(int n)
 }
 
 Object*
+fnnot(Object *env, Object *list)
+{
+	if(list->type != OCELL || exprlen(list)!= 1)
+		error("Malformed not");
+	return _newint(list->car == &Nil);
+}
+
+Object*
 fneq(Object *env, Object *list)
 {
 	return _newint(cmp(env, list) == 0);

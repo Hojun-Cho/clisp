@@ -69,6 +69,7 @@ extern Object Progn;
 extern Object Macro;
 extern Object Setq;
 extern Object Eq;
+extern Object Not;
 extern Object Ne;
 extern Object If;
 extern Object Ge;

@@ -14,6 +14,7 @@ Object Lt	= (Object){.type=OBLTIN, .beg= "<"};
 Object Gt	= (Object){.type=OBLTIN, .beg= ">"};
 Object Ne	= (Object){.type=OBLTIN, .beg= "!="};
 Object Eq	= (Object){.type=OBLTIN, .beg= "=="};
+Object Not	= (Object){.type=OBLTIN, .beg= "not"};
 
 Object Comma= (Object){.type=OBLTIN, .beg=","};
 Object Bquote= (Object){.type=OBLTIN, .beg="`"};
@@ -44,6 +45,7 @@ extern Object* fncar(Object *, Object *);
 extern Object* fncdr(Object *, Object *);
 extern Object* fncons(Object *, Object *);
 extern Object* fneq(Object *, Object *);
+extern Object* fnnot(Object *, Object *);
 extern Object* fnif(Object *, Object *);
 extern Object* fnge(Object *env, Object *list);
 extern Object* fngt(Object *env, Object *list);
@@ -75,6 +77,7 @@ bltinlookup(Object *obj)
 		{&Cdr ,fncdr},
 		{&Cons ,fncons},
         {&Eq, fneq},
+        {&Not, fnnot},
         {&Ne, fnne},
         {&If, fnif},
         {&Ge, fnge},
