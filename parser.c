@@ -110,6 +110,7 @@ atom(FILE *f, char c)
 	if(isalpha(c) || strchr(symbolchars, c)){
 		return symbol(f, c);
 	}
+
 	error("bad char in list '%c'", c);
 	return 0;
 }
@@ -175,6 +176,11 @@ redo:
 		res = quote(f, &Bquote, bq);
 		*bq -= 1;
 		return res;
+	case ',':
+		if(*bq <= 0)
+			error("comma is illegal outside of backquote");
+		get(f);
+		return newcons(gc, &Comma, list(f, bq));
 	case '\'':
 		get(f);
 		return quote(f, &Quote, bq);
