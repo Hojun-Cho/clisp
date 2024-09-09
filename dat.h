@@ -11,7 +11,6 @@ enum OType
 	OIDENT,
 	OSTRING,
 	OINT,
-	OLAMBDA,
 	OFUNC,
 	OMACRO,
 	OENV,
@@ -53,6 +52,8 @@ struct Object
 
 extern GC *gc;
 extern Object Nil;
+extern Object Comma;
+extern Object Bquote;
 extern Object Minus;
 extern Object Plus;
 extern Object Mul;

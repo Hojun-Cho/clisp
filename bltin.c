@@ -15,6 +15,8 @@ Object Gt	= (Object){.type=OBLTIN, .beg= ">"};
 Object Ne	= (Object){.type=OBLTIN, .beg= "!="};
 Object Eq	= (Object){.type=OBLTIN, .beg= "=="};
 
+Object Comma= (Object){.type=OBLTIN, .beg=","};
+Object Bquote= (Object){.type=OBLTIN, .beg="`"};
 Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
 Object Progn=(Object){.type=OBLTIN, .beg="progn"};
 Object Car	= (Object){.type=OBLTIN, .beg="car"};
@@ -39,6 +41,7 @@ extern Object* fndefn(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
 extern Object* fnundef(Object *, Object *);
 extern Object* fnquote(Object *, Object *);
+extern Object* fnbquote(Object *, Object *);
 extern Object* fncar(Object *, Object *);
 extern Object* fncdr(Object *, Object *);
 extern Object* fncons(Object *, Object *);
@@ -70,6 +73,7 @@ bltinlookup(Object *obj)
 		{&Defn ,fndefn},
 		{&Setq ,fnsetq},
 		{&Quote ,fnquote},
+		{&Bquote,  fnbquote},
 		{&Car ,fncar},
 		{&Cdr ,fncdr},
 		{&Cons ,fncons},

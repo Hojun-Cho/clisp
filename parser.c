@@ -7,8 +7,8 @@
 
 const char symbolchars[] = "!*/%-=+<>'";
 
-static Object* lparlist(FILE *);
-static Object* list(FILE *);
+static Object* lparlist(FILE *, int *);
+static Object* list(FILE *, int *);
 
 static char
 get(FILE *f)
@@ -74,10 +74,9 @@ number(FILE *f)
 }
 
 static Object*
-quote(FILE *f)
+quote(FILE *f, Object *car, int *bq)
 {
-	Object *car = &Quote;
-	Object *ccdr = list(f);
+	Object *ccdr = list(f, bq);
 	Object *cdr = newcons(gc, ccdr, &Nil);
 	return newcons(gc, car, cdr);
 }
@@ -116,53 +115,79 @@ atom(FILE *f, char c)
 }
 
 static Object*
-lparlist(FILE *f)
+lparlist(FILE *f, int *bq)
 {
 	Object *car = 0;
 	Object *cdr = 0;
+	Object *res = 0;
 	char c = slookup(f);
 	switch(c){
+	case '`':
+		*bq += 1;
+		get(f);
+		car = quote(f, &Bquote, bq);
+		cdr = lparlist(f, bq);
+		res = newcons(gc, car, cdr);
+		*bq -= 1;
+		return res;
 	case '\'':
 		get(f);
-		car = quote(f);
-		cdr = lparlist(f);
+		car = quote(f, &Quote, bq);
+		cdr = lparlist(f, bq);
+		return newcons(gc, car, cdr);
+	case ',':
+		if(*bq <= 0)
+			error("comma is illegal outside of backquote");
+		get(f);
+		car = newcons(gc, &Comma, list(f, bq));
+		cdr = lparlist(f, bq);
 		return newcons(gc, car, cdr);
 	case '.':
 		get(f);	
-		return list(f);
+		return list(f, bq);
 	case '(':
-		car = list(f);
-		cdr = lparlist(f);
+		car = list(f, bq);
+		cdr = lparlist(f, bq);
 		return newcons(gc, car, cdr);
 	case ')':
 		return &Nil;
+	default:
+		car = atom(f, c);
+		cdr = lparlist(f, bq);
+		return newcons(gc, car ,cdr);
 	}
-	car = atom(f, c);
-	cdr = lparlist(f);
-	return newcons(gc, car ,cdr);
 }
 
 static Object*
-list(FILE *f)
+list(FILE *f, int *bq)
 {
 redo:
+	Object *res = 0;
 	char c = slookup(f);
 	switch(c){
 	case ';':
+		get(f);
 		skipline(f);
 		goto redo;
+	case '`':
+		*bq += 1;
+		get(f);
+		res = quote(f, &Bquote, bq);
+		*bq -= 1;
+		return res;
 	case '\'':
 		get(f);
-		return quote(f);
+		return quote(f, &Quote, bq);
 	case '(':{
 		get(f);
-		Object *obj = lparlist(f);
+		res = lparlist(f, bq);
 		slookup(f);
 		expect(f, ')');
-		return obj;
+		return res;
 		}
+	default:
+		return atom(f, c);
 	}	
-	return atom(f, c);
 }
 
 void
@@ -183,5 +208,10 @@ skipline(FILE *f)
 Object*
 nextexpr(FILE *f)
 {
-	return list(f);
+	int bq = 0;
+	Object *expr = list(f, &bq);
+	if(bq != 0){
+		error("Bad backquote in expr");	
+	}
+	return expr;
 }

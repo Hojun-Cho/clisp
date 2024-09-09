@@ -123,6 +123,37 @@ fnquote(Object *env, Object *list)
     return list->car;
 }
 
+static Object*
+evalcomma(Object *env, Object *p)
+{
+	enum { VISITED = 1 << 9 };
+
+	if(p->type == OCELL){
+		if(p->flag & VISITED)
+			return p;
+		p->flag |= VISITED;
+		if(p->car == &Comma){
+			p = eval(env, p->cdr);
+			p->flag |= VISITED;
+			return p;
+		}
+		p->car = evalcomma(env, p->car);
+		p->cdr = evalcomma(env, p->cdr);
+	}
+	return p;
+}
+
+Object*
+fnbquote(Object *env, Object *list)
+{
+	if(list->cdr != &Nil){
+		printexpr(list);
+		error("fnbquote expected cdr is nil");	
+	}
+	list = evalcomma(env, list->car);
+	return list;
+}
+
 Object*
 fncar(Object *env, Object *list)
 {

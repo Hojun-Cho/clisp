@@ -38,9 +38,6 @@ SExprint(Object *obj)
 	case OMACRO:
 		printf("<macro>");
 		goto func;
-	case OLAMBDA:
-		printf("<lambda>");
-		goto func;
 	case OFUNC:
 		printf("<func>");
 func:
