@@ -46,16 +46,13 @@ _newfn(Object *env, Object *l, enum OType type)
 }
 
 static Object* 
-setvar(Object *env, Object *id, Object *val)
+defvar(Object *env, Object *id, Object *val)
 {
-	printexpr(id);
-	Object *obj = find(env, id);
-	if(obj == 0)
-		 return newacons(gc, id, val, env->vars);
-	else{
-		obj->cdr = val;
-		return env->vars;
+	for(Object *p=env->vars; p!=&Nil; p=p->cdr){
+		if(strequal(id, p->car->car))
+			error("already exist variable. use setq plz...");
 	}
+	return newacons(gc, id, val, env->vars);
 }
 
 Object*
@@ -68,7 +65,7 @@ Object*
 fnmacro(Object *env, Object *l)
 {
 	Object *macro = _newfn(env, l->cdr, OMACRO);
-	env->vars = setvar(env, l->car, macro);
+	env->vars = defvar(env, l->car, macro);
 	return macro;
 }
 
@@ -106,7 +103,7 @@ fndefine(Object *env, Object *list)
 	if(exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed define");
 	Object *val = eval(env, list->cdr->car);
-	env->vars = setvar(env, list->car, val);
+	env->vars = defvar(env, list->car, val);
 	return val;
 }
 
