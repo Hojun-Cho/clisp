@@ -25,7 +25,6 @@ Object Quote= (Object){.type=OBLTIN, .beg="'"};
 Object Cons	= (Object){.type=OBLTIN, .beg="cons"};
 Object Define= (Object){.type=OBLTIN, .beg="define"};
 Object Macro= (Object){.type=OBLTIN, .beg="macro"};
-Object Defn= (Object){.type=OBLTIN, .beg="defn"};
 Object Setq	= (Object){.type=OBLTIN, .beg="setq"};
 Object If	= (Object){.type=OBLTIN, .beg="if"};
 
@@ -37,7 +36,6 @@ extern Object* fnlambda(Object *, Object *);
 extern Object* fnprogn(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
 extern Object* fnmacro(Object *, Object *);
-extern Object* fndefn(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
 extern Object* fnundef(Object *, Object *);
 extern Object* fnquote(Object *, Object *);
@@ -70,7 +68,6 @@ bltinlookup(Object *obj)
 		{&Div , fndiv},
 		{&Define ,fndefine},
 		{&Macro ,fnmacro},
-		{&Defn ,fndefn},
 		{&Setq ,fnsetq},
 		{&Quote ,fnquote},
 		{&Bquote,  fnbquote},

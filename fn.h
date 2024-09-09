@@ -4,14 +4,12 @@ Object* nextexpr(FILE*);
 void skipline(FILE*);
 
 /* repl.c */
-void repl(Object *env, FILE*, char *pre);
-void readlibs(char *argv[], Object *env);
+void lispmain(char *argv[]);
 
 /* eval.c */
 Object* eval(Object *env, Object *expr);
 
 /* new */
-
 Object* newint(GC *,long);
 Object* newcons(GC *,Object*,Object*);
 Object* newenv(GC *,Object*name, Object *vars, Object *up);

@@ -59,8 +59,8 @@ printexpr(Object *obj)
 int
 main(int argc, char *argv[])
 {
+	*argv = "lib/lib.lisp";
 	gc = newgc(&argc, 400);
-	Object *env = newenv(gc, &Nil, &Nil, &Nil);
-	readlibs(argv + 1, env);
-	repl(env, stdin, ">> ");
+	lispmain(argv);
+	panic("unreachable");
 }

@@ -45,22 +45,17 @@ _newfn(Object *env, Object *l, enum OType type)
 	return newfn(gc, env, params, body, type);
 }
 
-static void
+static Object* 
 setvar(Object *env, Object *id, Object *val)
 {
+	printexpr(id);
 	Object *obj = find(env, id);
 	if(obj == 0)
-		env->vars = newacons(gc, id, val, env->vars);
-	else
+		 return newacons(gc, id, val, env->vars);
+	else{
 		obj->cdr = val;
-}
-
-Object*
-fndefn(Object *env, Object *list)
-{
-	Object *fn = _newfn(env, list->cdr, OFUNC);
-	setvar(env, list->car, fn);
-	return fn;
+		return env->vars;
+	}
 }
 
 Object*
@@ -73,7 +68,7 @@ Object*
 fnmacro(Object *env, Object *l)
 {
 	Object *macro = _newfn(env, l->cdr, OMACRO);
-	setvar(env, l->car, macro);
+	env->vars = setvar(env, l->car, macro);
 	return macro;
 }
 
@@ -111,7 +106,7 @@ fndefine(Object *env, Object *list)
 	if(exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed define");
 	Object *val = eval(env, list->cdr->car);
-	setvar(env, list->car, val);
+	env->vars = setvar(env, list->car, val);
 	return val;
 }
 
@@ -123,22 +118,16 @@ fnquote(Object *env, Object *list)
     return list->car;
 }
 
-static Object*
+static Object* 
 evalcomma(Object *env, Object *p)
 {
-	enum { VISITED = 1 << 9 };
-
 	if(p->type == OCELL){
-		if(p->flag & VISITED)
-			return p;
-		p->flag |= VISITED;
-		if(p->car == &Comma){
-			p = eval(env, p->cdr);
-			p->flag |= VISITED;
-			return p;
-		}
-		p->car = evalcomma(env, p->car);
-		p->cdr = evalcomma(env, p->cdr);
+		if(p->car == &Comma)
+			return eval(env, p->cdr);
+		Object *dst = newcons(gc, p->car, p->cdr);
+		dst->car = evalcomma(env, p->car);
+		dst->cdr = evalcomma(env, p->cdr);
+		return dst;
 	}
 	return p;
 }
@@ -146,12 +135,9 @@ evalcomma(Object *env, Object *p)
 Object*
 fnbquote(Object *env, Object *list)
 {
-	if(list->cdr != &Nil){
-		printexpr(list);
-		error("fnbquote expected cdr is nil");	
-	}
-	list = evalcomma(env, list->car);
-	return list;
+	if(exprlen(list) != 1)
+		error("Malformed fnbquote");	
+	return evalcomma(env, list->car);
 }
 
 Object*
@@ -387,7 +373,9 @@ apply(Object *env, Object *fn, Object *args)
 	if(islist(args) == 0)
 		error("args is not list type");
 	switch(fn->type){
-	default: error("can't apply");
+	default: error("apply only tabke [MACRO BLTIN FUNC]");
+    case OMACRO:
+    	return applymacro(env, fn, args);
 	case OBLTIN:{
             Bltinfn blt = bltinlookup(fn);
             if(blt==0)
@@ -421,10 +409,6 @@ eval(Object *env, Object *obj)
 		}
 	case OCELL:{
 			Object *fn = eval(env, obj->car);
-			if(fn->type == OMACRO)
-				return applymacro(env, fn, obj->cdr);
-			if(fn->type!=OFUNC&&fn->type!=OBLTIN)
-				error("expected function type");
 			Object *res = apply(env, fn, obj->cdr);
 			return res;
 		}

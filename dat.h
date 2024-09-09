@@ -67,7 +67,6 @@ extern Object Cons;
 extern Object Define;
 extern Object Progn;
 extern Object Macro;
-extern Object Defn;
 extern Object Setq;
 extern Object Eq;
 extern Object Ne;

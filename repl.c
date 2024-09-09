@@ -31,14 +31,14 @@ error(char *fmt, ...)
 	exit(1);
 }
 
-void
+static void
 repl(Object *env, FILE *f, char *pre)
 {
 	jmp_buf err;
 	errptr = &err;
 	if(setjmp(err) == 1){
 		if(feof(f))
-			return;
+			exit(1);
 		skipline(f);
 	}
 	while(1){
@@ -50,14 +50,30 @@ repl(Object *env, FILE *f, char *pre)
 	}
 }
 
-void 
-readlibs(char *argv[], Object *env)
+static void
+readlib(FILE *f, Object *env)
 {
-	for(;*argv; argv++){
+	jmp_buf buf;
+	errptr = &buf;
+	if(setjmp(buf) == 1)
+		return;
+	while(1){
+		eval(env, nextexpr(f));
+	}
+	panic("unreachable");
+	errptr = 0;
+}
+
+void
+lispmain(char *argv[])
+{
+	Object *env = newenv(gc , &Nil, &Nil, &Nil);
+	for(; *argv; ++argv){
 		FILE *f = fopen(*argv, "r");
 		if(f == 0)
-			panic("can't open %s", *argv);
-		repl(env, f, "");
-		printf("\n");
+			panic("can't open %s'", *argv);
+		readlib(f, env);
+		fclose(f);
 	}
+	repl(env, stdin, ">> ");
 }
