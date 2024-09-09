@@ -140,6 +140,12 @@ lparlist(FILE *f, int *bq)
 		if(*bq <= 0)
 			error("comma is illegal outside of backquote");
 		get(f);
+		if(lookup(f) == '@'){
+			get(f);
+			res = newcons(gc, &Comma, &Nil);
+			res->cdr = newcons(gc, &Splice, list(f, bq));
+			return newcons(gc, res, lparlist(f, bq));
+		}
 		car = newcons(gc, &Comma, list(f, bq));
 		cdr = lparlist(f, bq);
 		return newcons(gc, car, cdr);
@@ -180,9 +186,15 @@ redo:
 		if(*bq <= 0)
 			error("comma is illegal outside of backquote");
 		get(f);
-		return newcons(gc, &Comma, list(f, bq));
+		if(lookup(f) == '@'){
+			get(f);
+			res = newcons(gc, &Comma, &Nil);
+			res->cdr = newcons(gc, &Splice, list(f, bq));
+		}else
+			res = newcons(gc, &Comma, list(f, bq));
+		return res;
 	case '\'':
-		get(f);
+		get(f);	
 		return quote(f, &Quote, bq);
 	case '(':{
 		get(f);

@@ -2,6 +2,7 @@
 #include "fn.h"
 
 Object Nil	= (Object){.type=OSYMBOL, .beg="nil"};
+Object Splice= (Object){.type=OSYMBOL, .beg="@"};
 Object Minus= (Object){.type=OBLTIN, .beg="-"};
 Object Plus	= (Object){.type=OBLTIN, .beg="+"};
 Object Mul	= (Object){.type=OBLTIN, .beg="*"};

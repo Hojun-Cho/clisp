@@ -63,7 +63,7 @@ newsymbol(GC *gc, char *str, int len)
 		&Nil,  &Minus, &Plus, &Mul, &Mod, &Div, &Ge, &Le,
 		&Lt, &Gt, &Ne, &Lambda, &Car, &Cdr, &Quote, &Cons,
 		&Define, &Setq, &Eq, &If, &Macro, &Progn, &Bquote,
-		&Comma, &Not,
+		&Comma, &Not, &Splice,
 	};
 	for(int i = 0; i < sizeof(syms)/sizeof(syms[0]); ++i){
 		Object *c = syms[i];

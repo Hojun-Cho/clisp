@@ -53,6 +53,7 @@ struct Object
 extern GC *gc;
 extern Object Nil;
 extern Object Comma;
+extern Object Splice;
 extern Object Bquote;
 extern Object Minus;
 extern Object Plus;

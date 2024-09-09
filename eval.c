@@ -118,15 +118,26 @@ fnquote(Object *env, Object *list)
 static Object* 
 evalcomma(Object *env, Object *p)
 {
-	if(p->type == OCELL){
-		if(p->car == &Comma)
+	if(p->type != OCELL)
+		return p;
+	if(p->car == &Comma){
+		if(p->cdr->type == OCELL && p->cdr->car == &Splice){
+			Object *obj = eval(env, p->cdr->cdr);
+			return newcons(gc, &Splice, obj);
+		}else
 			return eval(env, p->cdr);
-		Object *dst = newcons(gc, p->car, p->cdr);
-		dst->car = evalcomma(env, p->car);
-		dst->cdr = evalcomma(env, p->cdr);
-		return dst;
 	}
-	return p;
+	Object *car = evalcomma(env, p->car);
+	Object *cdr = evalcomma(env, p->cdr);
+	if(cdr->type == OCELL && cdr->car == &Splice){
+		cdr = cdr->cdr;
+	}
+	if(car->type == OCELL && car->car == &Splice){
+		car = car->cdr;
+		if(cdr == &Nil)
+			return car;
+	}
+	return newcons(gc, car, cdr);
 }
 
 Object*
@@ -141,7 +152,9 @@ Object*
 fncar(Object *env, Object *list)
 {
     list = evallist(env, list);
-    if(list->car->type != OCELL || list->cdr != &Nil)
+    if(list->car == &Nil)
+    	return &Nil;
+    if(list->car->type != OCELL)
 		error("Malformed Car");
     return list->car->car;
 }
@@ -150,7 +163,9 @@ Object*
 fncdr(Object *env, Object *list)
 {
     list = evallist(env, list);
-    if(list->car->type != OCELL || list->cdr != &Nil)
+    if(list->car == &Nil)
+    	return &Nil;
+    if(list->car->type != OCELL)
 		error("Malformed Car");
     return list->car->cdr;
 }
@@ -378,7 +393,8 @@ apply(Object *env, Object *fn, Object *args)
 	if(islist(args) == 0)
 		error("args is not list type");
 	switch(fn->type){
-	default: error("apply only tabke [MACRO BLTIN FUNC]");
+	default:
+		error("apply only tabke [MACRO BLTIN FUNC]");
     case OMACRO:
     	return applymacro(env, fn, args);
 	case OBLTIN:{
