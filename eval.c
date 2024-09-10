@@ -9,8 +9,6 @@ exprlen(Object *expr)
 	int l = 0;
 	for(;expr->type==OCELL; expr=expr->cdr)
 		++l;	
-	if(expr != &Nil)
-		error("Not list type");
 	return l;
 }
 
@@ -21,13 +19,34 @@ islist(Object *obj)
 }
 
 static Object*
+clone(Object *p)
+{
+	switch(p->type){
+	default: panic("unreachable");
+	case OSYMBOL:
+	case OBLTIN: return p;
+	case OINT: return newint(gc, p->num);
+	case OIDENT: return newsymbol(gc, p->beg, p->ptr - p->beg);
+	case OCELL: return newcons(gc, clone(p->car), clone(p->cdr));
+	case OENV: return p;
+	case OMACRO:
+	case OFUNC: return newfn(gc, p->env, clone(p->params), clone(p->body), p->type);
+	case OSTRING:{
+		Object *s = newstr(gc, p->end - p->beg);
+		strinit(s, p);
+		return s;
+		}
+	}
+}
+
+static Object*
 find(Object *env, Object *obj)
 {
-	for(Object *cur=env; cur!=&Nil; cur=cur->up){
-		for(Object *p=cur->vars; p!=&Nil; p=p->cdr)
-			if(strequal(obj, p->car->car))
-				return p->car;
-	}
+	for(Object *cur=env; cur!=&Nil; cur=cur->up)
+	for(Object *p=cur->vars; p!=&Nil; p=p->cdr)
+		if(strequal(obj, p->car->car))
+			return clone(p->car->cdr);
+	error("not exist variable");
 	return 0;
 }
 
@@ -36,10 +55,9 @@ _newfn(Object *env, Object *l, enum OType type)
 {
 	if(l->type!=OCELL || islist(l->car)==0 || l->cdr->type!=OCELL)
 		error("malformed function");
-	for(Object *p=l->car; p->type==OCELL; p=p->cdr){
+	for(Object *p=l->car; p->type==OCELL; p=p->cdr)
 		if(p->car->type!=OIDENT)
 			error("parameter is not IDNET");
-	}
 	Object *params = l->car;
 	Object *body = l->cdr;
 	return newfn(gc, env, params, body, type);
@@ -48,10 +66,9 @@ _newfn(Object *env, Object *l, enum OType type)
 static Object* 
 defvar(Object *env, Object *id, Object *val)
 {
-	for(Object *p=env->vars; p!=&Nil; p=p->cdr){
+	for(Object *p=env->vars; p!=&Nil; p=p->cdr)
 		if(strequal(id, p->car->car))
 			error("already exist variable. use setq plz...");
-	}
 	return newacons(gc, id, val, env->vars);
 }
 
@@ -74,8 +91,7 @@ progn(Object *env, Object *list)
 {
 	Object *r = 0;
 	for(Object *p=list; p!=&Nil; p=p->cdr){
-		r = p->car;
-		r = eval(env, r);
+		r = eval(env, p->car);
 	}
 	return r;
 }
@@ -91,10 +107,15 @@ fnsetq(Object *env, Object *list)
 {
 	if(exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed setq");
-	Object *obj = find(env, list->car);
-	if(obj == 0)
-		error("Not exist variable");
-	return obj->cdr = eval(env, list->cdr->car);
+	Object *cur = env;
+	Object *p = 0;
+	for(; cur!=&Nil; cur=cur->up)
+	for(p=cur->vars; p!=&Nil; p=p->cdr)
+		if(strequal(list->car, p->car->car))
+				goto found;
+	error("setq not exist variable");
+found:;
+	return p->car->cdr = eval(env, list->cdr->car);	
 }
 
 Object*
@@ -115,29 +136,30 @@ fnquote(Object *env, Object *list)
     return list->car;
 }
 
-static Object* 
+static Object*
 evalcomma(Object *env, Object *p)
 {
 	if(p->type != OCELL)
 		return p;
 	if(p->car == &Comma){
 		if(p->cdr->type == OCELL && p->cdr->car == &Splice){
-			Object *obj = eval(env, p->cdr->cdr);
-			return newcons(gc, &Splice, obj);
+			return newcons(gc, &Splice, eval(env, p->cdr->cdr));
 		}else
 			return eval(env, p->cdr);
 	}
-	Object *car = evalcomma(env, p->car);
-	Object *cdr = evalcomma(env, p->cdr);
-	if(cdr->type == OCELL && cdr->car == &Splice){
-		cdr = cdr->cdr;
+	p->car = evalcomma(env, p->car);
+	p->cdr = evalcomma(env, p->cdr);
+	if(p->car->type == OCELL && p->car->car == &Splice){
+		Object *i = p->car;
+		while(i->cdr->type == OCELL && i->cdr != &Nil)
+			i = i->cdr;
+		if(i->type == OCELL){
+			i->cdr = p->cdr;
+			return p->car->cdr;
+		}
+		p->car = i;
 	}
-	if(car->type == OCELL && car->car == &Splice){
-		car = car->cdr;
-		if(cdr == &Nil)
-			return car;
-	}
-	return newcons(gc, car, cdr);
+	return p;
 }
 
 Object*
@@ -155,7 +177,7 @@ fncar(Object *env, Object *list)
     if(list->car == &Nil)
     	return &Nil;
     if(list->car->type != OCELL)
-		error("Malformed Car");
+		error("car: expected list");
     return list->car->car;
 }
 
@@ -166,7 +188,7 @@ fncdr(Object *env, Object *list)
     if(list->car == &Nil)
     	return &Nil;
     if(list->car->type != OCELL)
-		error("Malformed Car");
+		error("cdr: expected list");
     return list->car->cdr;
 }
 
@@ -180,39 +202,17 @@ fncons(Object *env, Object *list)
     return list;
 }
 
-static Object*
-plusint(Object *env, Object *p)
+Object*
+fnplus(Object *env, Object *list)
 {
 	long sum = 0;
+    Object *p=evallist(env, list);
     for(;p!=&Nil; p=p->cdr){
 		if(p->car->type != OINT)
 			error("+ take only number");
 		sum += p->car->num;
 	}
 	return newint(gc, sum);
-}
-
-static Object*
-plusstr(Object *env, Object *p)
-{
-    Object *str = newstr(gc, 16);
-    for(;p!=&Nil; p=p->cdr){
-		if(p->car->type != OSTRING)
-			error("+ take only number");
-        str = strputs(str, p->car);
-	}
-    return str;
-}
-
-Object*
-fnplus(Object *env, Object *list)
-{
-    Object *p=evallist(env, list);
-    switch(p->car->type){
-    default: error("+ take only [STRING, INT]");
-    case OSTRING: return plusstr(env ,p);
-    case OINT: return plusint(env, p);
-    }
 }
 
 Object*
@@ -285,9 +285,9 @@ _newint(int n)
 Object*
 fnnot(Object *env, Object *list)
 {
-	if(list->type != OCELL || exprlen(list)!= 1)
+	if(list->type != OCELL)
 		error("Malformed not");
-	return _newint(list->car == &Nil);
+	return _newint(eval(env, list->car) == &Nil);
 }
 
 Object*
@@ -346,7 +346,7 @@ evallist(Object *env, Object *list)
 	if(list == &Nil)
 		return &Nil;
 	if(list->type != OCELL)
-		error("type is not list");
+		error("expected list");
 	Object *car = eval(env, list->car);
 	Object *cdr = evallist(env, list->cdr);
 	return newcons(gc, car, cdr);
@@ -355,17 +355,23 @@ evallist(Object *env, Object *list)
 static Object*
 enter(Object *env, Object *vars, Object *args)
 {
+#define cdr(x) (x!=&Nil ? x->cdr : &Nil)
+#define car(x) (x!=&Nil ? x->car : &Nil)
+
 	Object *map = &Nil;
-	for(;vars->type==OCELL; vars=vars->cdr,args=args->cdr){
-		if(args->type!=OCELL)
+	for(;vars->type==OCELL; vars=vars->cdr, args=cdr(args)){
+		if(args != &Nil && args->type!=OCELL)
 			error("Cna't apply function argment dose not match");
 		Object *id  = vars->car;
-		Object *val = args->car;
+		Object *val = car(args);
 		map = newacons(gc, id, val, map);
 	}
 	if(vars != &Nil)
 		map = newacons(gc, vars, args, map);
 	return newenv(gc, &Nil, map, env);
+
+#undef car
+#undef cdr
 }
 
 static Object*
@@ -423,13 +429,12 @@ eval(Object *env, Object *obj)
 	case OSYMBOL:
 		return obj;
 	case OIDENT:{
-			Object* val = find(env, obj);
-			if(val == 0)
-				error("not exist '%s'", obj->beg);
-			return val->cdr;
+			return find(env, obj);
 		}
 	case OCELL:{
 			Object *fn = eval(env, obj->car);
+			if(fn == &Nil)
+				return &Nil;
 			Object *res = apply(env, fn, obj->cdr);
 			return res;
 		}

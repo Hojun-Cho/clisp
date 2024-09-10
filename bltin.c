@@ -3,6 +3,7 @@
 
 Object Nil	= (Object){.type=OSYMBOL, .beg="nil"};
 Object Splice= (Object){.type=OSYMBOL, .beg="@"};
+Object Comma= (Object){.type=OSYMBOL, .beg=","};
 Object Minus= (Object){.type=OBLTIN, .beg="-"};
 Object Plus	= (Object){.type=OBLTIN, .beg="+"};
 Object Mul	= (Object){.type=OBLTIN, .beg="*"};
@@ -17,7 +18,6 @@ Object Ne	= (Object){.type=OBLTIN, .beg= "!="};
 Object Eq	= (Object){.type=OBLTIN, .beg= "=="};
 Object Not	= (Object){.type=OBLTIN, .beg= "not"};
 
-Object Comma= (Object){.type=OBLTIN, .beg=","};
 Object Bquote= (Object){.type=OBLTIN, .beg="`"};
 Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
 Object Progn=(Object){.type=OBLTIN, .beg="progn"};

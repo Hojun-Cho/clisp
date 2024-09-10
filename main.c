@@ -60,7 +60,7 @@ int
 main(int argc, char *argv[])
 {
 	*argv = "lib/lib.lisp";
-	gc = newgc(&argc, 12000);
+	gc = newgc(&argc, 400);
 	lispmain(argv);
 	panic("unreachable");
 }
