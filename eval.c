@@ -89,6 +89,8 @@ _newfn(Object *env, Object *l, enum OType type)
 static Object* 
 defvar(Object *env, Object *id, Object *val)
 {
+	if(id->type != OIDENT)
+		error("can't define, already using id");
 	for(Object *p=env->vars; p!=&Nil; p=cdr(p))
 		if(strequal(id, car(car(p))))
 			error("already exist variable. use setq plz...");
@@ -150,10 +152,8 @@ fnlet(Object *env, Object *list)
 	Object *nenv = newenv(gc, &Nil, &Nil, env) ;
 	for(Object *p=list->car; p!=&Nil; p=cdr(p)){
 		Object *var = car(car(p));
-		if(var->type != OIDENT)
-			error("expected ident");
 		Object *val = eval(env, car(cdr(car(p))));
-		nenv->vars = newacons(gc, var, val, nenv->vars);
+		nenv->vars = defvar(nenv, var, val);
 	}
 	return progn(nenv, cdr(list));
 }
@@ -161,7 +161,7 @@ fnlet(Object *env, Object *list)
 Object*
 fndefine(Object *env, Object *list)
 {
-	if(exprlen(list)!=2 || car(list)->type!=OIDENT)
+	if(exprlen(list)!=2)
 		error("Malformed define");
 	Object *val = eval(env, car(cdr(list)));
 	env->vars = defvar(env, car(list), val);
@@ -182,10 +182,9 @@ evalcomma(Object *env, Object *p)
 	if(p->type != OCELL)
 		return p;
 	if(p->car == &Comma){
-		if(car(cdr(p)) == &Splice){
+		if(car(cdr(p)) == &Splice)
 			return newcons(gc, &Splice, eval(env, p->cdr->cdr));
-		}else
-			return eval(env, p->cdr);
+		return eval(env, p->cdr);
 	}
 	p->car = evalcomma(env, p->car);
 	p->cdr = evalcomma(env, p->cdr);
@@ -214,8 +213,8 @@ Object*
 fncar(Object *env, Object *list)
 {
     list = evallist(env, list);
-    if(exprlen(list) < 1)
-		error("car: expected list");
+	if(car(list)->type != OCELL)
+		error("expected list");
 	return car(car(list));
 }
 
@@ -223,8 +222,8 @@ Object*
 fncdr(Object *env, Object *list)
 {
     list = evallist(env, list);
-    if(exprlen(list) < 1)
-		error("cdr: expected list");
+	if(car(list)->type != OCELL)
+		error("expected list");
 	return cdr(car(list));
 }
 
@@ -392,7 +391,7 @@ enter(Object *env, Object *vars, Object *args)
 {
 	Object *map = &Nil;
 	for(;vars->type==OCELL; vars=cdr(vars), args=cdr(args)){
-		if(args->type!=OCELL)
+		if(args != &Nil && args->type!=OCELL)
 			error("Cna't apply function argment dose not match");
 		Object *id  = car(vars);
 		Object *val = car(args);
