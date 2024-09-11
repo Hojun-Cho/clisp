@@ -1,14 +1,32 @@
 #include "dat.h"
 #include "fn.h"
 
+#define cdr(x) ((x)!= &Nil && (x)->type == OCELL ? (x)->cdr : &Nil)
+#define car(x) ((x)!= &Nil && (x)->type == OCELL ? (x)->car : &Nil)
+
+static char *typtab[] = {
+	[ONONE] = "error",
+	[OBLTIN] = "bltin",
+	[OSYMBOL] = "symbol",
+	[OCELL] = "cell",
+	[OIDENT] = "ident",
+	[OSTRING] = "string",
+	[OINT] = "int",
+	[OFUNC] = "func",
+	[OMACRO] = "macro",
+	[OENV] = "env",
+};
+
 static Object* evallist(Object *env, Object *list);
 
 static int
 exprlen(Object *expr)
 {
 	int l = 0;
-	for(;expr->type==OCELL; expr=expr->cdr)
-		++l;	
+	while(expr != &Nil){
+		expr = cdr(expr);
+		l += 1;
+	}
 	return l;
 }
 
@@ -23,14 +41,17 @@ clone(Object *p)
 {
 	switch(p->type){
 	default: panic("unreachable");
+	case OENV:
 	case OSYMBOL:
-	case OBLTIN: return p;
-	case OINT: return newint(gc, p->num);
-	case OIDENT: return newsymbol(gc, p->beg, p->ptr - p->beg);
-	case OCELL: return newcons(gc, clone(p->car), clone(p->cdr));
-	case OENV: return p;
+	case OINT:
+	case OIDENT:
+	case OBLTIN:
+		return p;
 	case OMACRO:
-	case OFUNC: return newfn(gc, p->env, clone(p->params), clone(p->body), p->type);
+	case OFUNC:
+		return newfn(gc, p->env, clone(p->params), clone(p->body), p->type);
+	case OCELL:
+		return newcons(gc, clone(p->car), clone(p->cdr));
 	case OSTRING:{
 		Object *s = newstr(gc, p->end - p->beg);
 		strinit(s, p);
@@ -43,9 +64,11 @@ static Object*
 find(Object *env, Object *obj)
 {
 	for(Object *cur=env; cur!=&Nil; cur=cur->up)
-	for(Object *p=cur->vars; p!=&Nil; p=p->cdr)
-		if(strequal(obj, p->car->car))
-			return clone(p->car->cdr);
+	for(Object *p=cur->vars; p!=&Nil; p=cdr(p)){
+		Object *v = car(p);
+		if(strequal(obj, car(v)))
+			return clone(cdr(v));
+	}
 	error("not exist variable");
 	return 0;
 }
@@ -55,7 +78,7 @@ _newfn(Object *env, Object *l, enum OType type)
 {
 	if(l->type!=OCELL || islist(l->car)==0 || l->cdr->type!=OCELL)
 		error("malformed function");
-	for(Object *p=l->car; p->type==OCELL; p=p->cdr)
+	for(Object *p=l->car; p->type==OCELL; p=cdr(p))
 		if(p->car->type!=OIDENT)
 			error("parameter is not IDNET");
 	Object *params = l->car;
@@ -66,8 +89,8 @@ _newfn(Object *env, Object *l, enum OType type)
 static Object* 
 defvar(Object *env, Object *id, Object *val)
 {
-	for(Object *p=env->vars; p!=&Nil; p=p->cdr)
-		if(strequal(id, p->car->car))
+	for(Object *p=env->vars; p!=&Nil; p=cdr(p))
+		if(strequal(id, car(car(p))))
 			error("already exist variable. use setq plz...");
 	return newacons(gc, id, val, env->vars);
 }
@@ -81,6 +104,8 @@ fnlambda(Object *env, Object *l)
 Object*
 fnmacro(Object *env, Object *l)
 {
+	if(l->type != OCELL)
+		error("Malformed macro");
 	Object *macro = _newfn(env, l->cdr, OMACRO);
 	env->vars = defvar(env, l->car, macro);
 	return macro;
@@ -89,9 +114,9 @@ fnmacro(Object *env, Object *l)
 static Object*
 progn(Object *env, Object *list)
 {
-	Object *r = 0;
-	for(Object *p=list; p!=&Nil; p=p->cdr){
-		r = eval(env, p->car);
+	Object *r = &Nil;
+	for(Object *p=list; p!=&Nil; p=cdr(p)){
+		r = eval(env, car(p));
 	}
 	return r;
 }
@@ -142,16 +167,16 @@ evalcomma(Object *env, Object *p)
 	if(p->type != OCELL)
 		return p;
 	if(p->car == &Comma){
-		if(p->cdr->type == OCELL && p->cdr->car == &Splice){
+		if(car(cdr(p)) == &Splice){
 			return newcons(gc, &Splice, eval(env, p->cdr->cdr));
 		}else
 			return eval(env, p->cdr);
 	}
 	p->car = evalcomma(env, p->car);
 	p->cdr = evalcomma(env, p->cdr);
-	if(p->car->type == OCELL && p->car->car == &Splice){
+	if(car(car(p)) == &Splice){
 		Object *i = p->car;
-		while(i->cdr->type == OCELL && i->cdr != &Nil)
+		while(cdr(i) != &Nil)
 			i = i->cdr;
 		if(i->type == OCELL){
 			i->cdr = p->cdr;
@@ -174,22 +199,18 @@ Object*
 fncar(Object *env, Object *list)
 {
     list = evallist(env, list);
-    if(list->car == &Nil)
-    	return &Nil;
-    if(list->car->type != OCELL)
+    if(exprlen(list) < 1)
 		error("car: expected list");
-    return list->car->car;
+	return car(car(list));
 }
 
 Object*
 fncdr(Object *env, Object *list)
 {
     list = evallist(env, list);
-    if(list->car == &Nil)
-    	return &Nil;
-    if(list->car->type != OCELL)
+    if(exprlen(list) < 1)
 		error("cdr: expected list");
-    return list->car->cdr;
+	return cdr(car(list));
 }
 
 Object*
@@ -198,7 +219,9 @@ fncons(Object *env, Object *list)
     if(exprlen(list) != 2)
         error("Malformoed cons");
     list = evallist(env, list);
-    list->cdr = list->cdr->car;
+    if(list->type != OCELL)
+    	error("cons:bad list");
+    list->cdr = car(list->cdr);
     return list;
 }
 
@@ -207,7 +230,7 @@ fnplus(Object *env, Object *list)
 {
 	long sum = 0;
     Object *p=evallist(env, list);
-    for(;p!=&Nil; p=p->cdr){
+    for(;p!=&Nil; p=cdr(p)){
 		if(p->car->type != OINT)
 			error("+ take only number");
 		sum += p->car->num;
@@ -219,11 +242,11 @@ Object*
 fnmul(Object *env, Object *list)
 {
     Object *p = evallist(env, list);
-    if(p->car->type != OINT)
+    if(car(p)->type != OINT)
 		error("* take only [INT]");
 	long sum = p->car->num;
-    for(p=p->cdr;p!=&Nil; p=p->cdr){
-		if(p->car->type != OINT)
+    for(p=p->cdr;p!=&Nil; p=cdr(p)){
+		if(car(p)->type != OINT)
 			error("* take only [INT]");
 		sum *= p->car->num;
 	}
@@ -237,8 +260,8 @@ fndiv(Object *env, Object *list)
     if(p->car->type != OINT)
 		error("/ take only [INT]");
 	long sum = p->car->num;
-    for(p=p->cdr;p!=&Nil; p=p->cdr){
-		if(p->car->type != OINT)
+    for(p=p->cdr;p!=&Nil; p=cdr(p)){
+		if(car(p)->type != OINT)
 			error("/ take only [INT]");
         if(p->car->num == 0)
             error("Can't div zero");
@@ -254,8 +277,8 @@ fnmod(Object *env, Object *list)
 	if(p->car->type != OINT)
 		error("%% take only [INT]");
 	long sum = p->car->num;
-    for(p=p->cdr;p!=&Nil; p=p->cdr){
-		if(p->car->type != OINT)
+    for(p=p->cdr;p!=&Nil; p=cdr(p)){
+		if(car(p)->type != OINT)
 			error("%% take only [INT]");
         if(p->car->num == 0)
             error("Can't mod zero");
@@ -267,8 +290,8 @@ fnmod(Object *env, Object *list)
 static long
 cmp(Object *env, Object *list)
 {
-    Object *a = eval(env, list->car);
-    Object *b = eval(env, list->cdr->car);
+    Object *a = eval(env, car(list));
+    Object *b = eval(env, car(cdr(list)));
 	if(a->type != OINT || b->type != OINT)
 		error("cmp only take [INT]");
 	return a->num - b->num;	
@@ -285,9 +308,9 @@ _newint(int n)
 Object*
 fnnot(Object *env, Object *list)
 {
-	if(list->type != OCELL)
+	if(exprlen(list) != 1)
 		error("Malformed not");
-	return _newint(eval(env, list->car) == &Nil);
+	return _newint(eval(env, car(list)) == &Nil);
 }
 
 Object*
@@ -329,15 +352,14 @@ fnne(Object *env, Object *list)
 Object*
 fnif(Object *env, Object *list)
 {
-	if(list->type != OCELL || list->cdr->type != OCELL)
+	if(cdr(list)->type != OCELL)
 		error("Malformed if stmt");
-	if(eval(env, list->car)!=&Nil)
-		return eval(env, list->cdr->car);
-	if(list->cdr->cdr == &Nil)
-		return &Nil;
-	if(list->cdr->cdr->type != OCELL)
-		error("Malformed else stmt");
-	return eval(env, list->cdr->cdr->car);
+	Object *test = list->car;
+	Object *then = car(cdr(list));
+	Object *else_ = car(cdr(cdr(list)));
+	if(eval(env, test)!=&Nil)
+		return eval(env, then);
+	return eval(env, else_);
 }
 
 static Object*
@@ -345,33 +367,25 @@ evallist(Object *env, Object *list)
 {
 	if(list == &Nil)
 		return &Nil;
-	if(list->type != OCELL)
-		error("expected list");
-	Object *car = eval(env, list->car);
-	Object *cdr = evallist(env, list->cdr);
+	Object *car = eval(env, car(list));
+	Object *cdr = evallist(env, cdr(list));
 	return newcons(gc, car, cdr);
 }
 
 static Object*
 enter(Object *env, Object *vars, Object *args)
 {
-#define cdr(x) (x!=&Nil ? x->cdr : &Nil)
-#define car(x) (x!=&Nil ? x->car : &Nil)
-
 	Object *map = &Nil;
-	for(;vars->type==OCELL; vars=vars->cdr, args=cdr(args)){
-		if(args != &Nil && args->type!=OCELL)
+	for(;vars->type==OCELL; vars=cdr(vars), args=cdr(args)){
+		if(args->type!=OCELL)
 			error("Cna't apply function argment dose not match");
-		Object *id  = vars->car;
+		Object *id  = car(vars);
 		Object *val = car(args);
 		map = newacons(gc, id, val, map);
 	}
 	if(vars != &Nil)
 		map = newacons(gc, vars, args, map);
 	return newenv(gc, &Nil, map, env);
-
-#undef car
-#undef cdr
 }
 
 static Object*
@@ -386,9 +400,8 @@ applymacro(Object *env, Object* fn, Object *args)
 {
 	Object *nenv = enter(fn->env, fn->params, args);
 	Object *r = 0;
-	for(Object *p=fn->body; p!=&Nil; p=p->cdr){
-		r = p->car;
-		r = eval(nenv, r);
+	for(Object *p=fn->body; p!=&Nil; p=cdr(p)){
+		r = eval(nenv, car(p));
 	}
 	return eval(env, r);
 }
@@ -397,16 +410,14 @@ static Object*
 apply(Object *env, Object *fn, Object *args)
 {
 	if(islist(args) == 0)
-		error("args is not list type");
+		error("apply:args is not list type");
 	switch(fn->type){
 	default:
-		error("apply only tabke [MACRO BLTIN FUNC]");
+		error("apply:can't eval type");
     case OMACRO:
     	return applymacro(env, fn, args);
 	case OBLTIN:{
             Bltinfn blt = bltinlookup(fn);
-            if(blt==0)
-                error("not builtin type!");
             return blt(env, args);
         }
 	case OFUNC:{
@@ -422,19 +433,16 @@ eval(Object *env, Object *obj)
 {
 	switch(obj->type){
 	default:
-		error("can't eval");
+		error("eval: can't eval type");
 	case OSTRING:
 	case OINT:
 	case OBLTIN:
 	case OSYMBOL:
 		return obj;
-	case OIDENT:{
+	case OIDENT:
 			return find(env, obj);
-		}
 	case OCELL:{
 			Object *fn = eval(env, obj->car);
-			if(fn == &Nil)
-				return &Nil;
 			Object *res = apply(env, fn, obj->cdr);
 			return res;
 		}
