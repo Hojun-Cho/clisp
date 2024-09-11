@@ -130,26 +130,41 @@ fnprogn(Object *env, Object *list)
 Object*
 fnsetq(Object *env, Object *list)
 {
-	if(exprlen(list)!=2 || list->car->type!=OIDENT)
+	if(list->type != OCELL || exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed setq");
 	Object *cur = env;
-	Object *p = 0;
+	Object *p = &Nil;
 	for(; cur!=&Nil; cur=cur->up)
-	for(p=cur->vars; p!=&Nil; p=p->cdr)
-		if(strequal(list->car, p->car->car))
-				goto found;
+	for(p=cur->vars; p!=&Nil; p=cdr(p))
+		if(strequal(list->car, car(car(p))))
+			return p->car->cdr = eval(env, car(cdr(list)));	
 	error("setq not exist variable");
-found:;
-	return p->car->cdr = eval(env, list->cdr->car);	
+	return 0;
+}
+
+Object*
+fnlet(Object *env, Object *list)
+{
+	if(exprlen(list) < 2)
+		error("let (vars) bodys");
+	Object *nenv = newenv(gc, &Nil, &Nil, env) ;
+	for(Object *p=list->car; p!=&Nil; p=cdr(p)){
+		Object *var = car(car(p));
+		if(var->type != OIDENT)
+			error("expected ident");
+		Object *val = eval(env, car(cdr(car(p))));
+		nenv->vars = newacons(gc, var, val, nenv->vars);
+	}
+	return progn(nenv, cdr(list));
 }
 
 Object*
 fndefine(Object *env, Object *list)
 {
-	if(exprlen(list)!=2 || list->car->type!=OIDENT)
+	if(exprlen(list)!=2 || car(list)->type!=OIDENT)
 		error("Malformed define");
-	Object *val = eval(env, list->cdr->car);
-	env->vars = defvar(env, list->car, val);
+	Object *val = eval(env, car(cdr(list)));
+	env->vars = defvar(env, car(list), val);
 	return val;
 }
 

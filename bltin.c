@@ -20,6 +20,7 @@ Object Not	= (Object){.type=OBLTIN, .beg= "not"};
 
 Object Bquote= (Object){.type=OBLTIN, .beg="`"};
 Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
+Object Let= (Object){.type=OBLTIN, .beg="let"};
 Object Progn=(Object){.type=OBLTIN, .beg="progn"};
 Object Car	= (Object){.type=OBLTIN, .beg="car"};
 Object Cdr	= (Object){.type=OBLTIN, .beg="cdr"};
@@ -35,6 +36,7 @@ extern Object* fnmul(Object *, Object *);
 extern Object* fndiv(Object *, Object *);
 extern Object* fnmod(Object *, Object *);
 extern Object* fnlambda(Object *, Object *);
+extern Object* fnlet(Object *, Object *);
 extern Object* fnprogn(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
 extern Object* fnmacro(Object *, Object *);
@@ -72,6 +74,7 @@ bltinlookup(Object *obj)
 		{&Define ,fndefine},
 		{&Macro ,fnmacro},
 		{&Setq ,fnsetq},
+		{&Let ,fnlet},
 		{&Quote ,fnquote},
 		{&Bquote,  fnbquote},
 		{&Car ,fncar},

@@ -69,6 +69,7 @@ extern Object Define;
 extern Object Progn;
 extern Object Macro;
 extern Object Setq;
+extern Object Let;
 extern Object Eq;
 extern Object Not;
 extern Object Ne;
