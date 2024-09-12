@@ -1,5 +1,5 @@
 (defmacro defun (name args body) 
-		`(define ,name (block ,name (lambda ,args ,body))))
+		`(define ,name (lambda ,args (block ,name ,body))))
 
 (defmacro cond (expr . rest)
 	(if (not expr)
@@ -28,5 +28,9 @@
 	`(if (not ,test)
 		(progn ,@rest)))
 
+(defmacro return (res)
+	(return-from nil `,res))
+
 (defun list (x . y) (cons x y))
+
 

@@ -57,6 +57,7 @@ newenv(GC *gc, Object *frames, Object *bp, Object *sp)
 	env->frames = frames;
 	env->bp = bp;
 	env->sp = sp;
+	env->retval = &Nil;
 	return env;
 }
 

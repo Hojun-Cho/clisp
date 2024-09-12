@@ -42,7 +42,6 @@ findobj(GC *gc, uintptr_t *stk)
 static Object*
 cloneobj(GC *dst, GC *src, Object *obj)
 {
-	if(obj==0)return 0;
 	if(obj->type==OBLTIN||obj->type==OSYMBOL) return obj;
 	if(obj->flag&FORWARD) return obj->forward;
 
@@ -133,7 +132,7 @@ gcraise(GC *src)
 static void
 mark(GC *gc, Object *obj)
 {
-	if(obj==0||obj->flag&USING||obj->type==ONONE||obj->type==OSYMBOL||obj->type==OBLTIN)
+	if(obj->flag&USING||obj->type==ONONE||obj->type==OSYMBOL||obj->type==OBLTIN)
 		return;
 
 	obj->flag = USING;

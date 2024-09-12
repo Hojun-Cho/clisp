@@ -164,27 +164,26 @@ fnprogn(Object *env, Object *list)
 Object*
 fnblock(Object *env, Object *list)
 {
-	if(list->type != OCELL)
+	if(list->type != OCELL|| (list->car->type != OSYMBOL&&list->car->type != OIDENT))
 		error("Malformed block");
 	Object *tag = car(list);
 	Object *body = cdr(list);
-	Object *frame = curframe(env);
 	jmp_buf jmp;
-	Object *b = frame->block = newblock(gc, tag, curblock(env), body, &jmp);
-	Object *res = 0;
+	Object *b = newblock(gc, tag, curblock(env), body, &jmp);
+	Object *sp = env->sp;
+	sp->car->block = b;
+	Object *res = &Nil;
 
 	if(setjmp(jmp) == 1){
+		env->sp->block = b->up;
+		env->sp = sp;
 		res = env->retval;
-		env->retval = 0;
-		Object *p = curblock(env);
-		for(;p!=b; p=p->up)
-			assert(p->tag != &Top);
-		curframe(env)->block = p->up;
+		env->retval = &Nil;
 		return res;
 	}
 
 	res = progn(env, body);
-	frame->block = frame->block->up;
+	sp->car->block = b->up;
 	return res;
 }
 

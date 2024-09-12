@@ -31,6 +31,16 @@ error(char *fmt, ...)
 	exit(1);
 }
 
+/* remove all frames except Top */
+static void
+clearenv(Object *env)
+{
+	env->bp->cdr = &Nil;
+	env->bp->car->block = &Top; 
+	env->sp = env->bp;
+	env->retval = &Nil;
+}
+
 static void
 repl(Object *env, FILE *f, char *pre)
 {
@@ -39,6 +49,7 @@ repl(Object *env, FILE *f, char *pre)
 	if(setjmp(err) == 1){
 		if(feof(f))
 			exit(1);
+		clearenv(env);
 		skipline(f);
 	}
 	while(1){
