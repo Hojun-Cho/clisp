@@ -65,16 +65,12 @@ clone(Object *p)
 static Object*
 find(Object *env, Object *obj)
 {
-	Object *res = 0;
 	for(Object *cur=env->sp->car; cur!=&Nil; cur=cur->up)
 	for(Object *p=cur->local; p!=&Nil; p=cdr(p))
-		if(strequal(obj, car(car(p)))){
-			res = p;
-			break;
-		}
-	if(res == 0)
-		error("not exist variable");
-	return clone(cdr(car(res)));
+		if(strequal(obj, car(car(p))))
+			return clone(cdr(car(p)));
+	error("not exist variable");
+	return 0;
 }
 
 static Object*
