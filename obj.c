@@ -29,13 +29,35 @@ newcons(GC *gc, Object *car, Object *cdr)
 }
 
 Object*
-newenv(GC *gc, Object* name, Object *vars, Object *up)
+newblock(GC *gc, Object* tag, Object *up, Object *body, void *jmp)
 {
-	Object *obj = newobj(gc, OENV, 0);
-	obj->name = name;
+	Object *obj = newobj(gc, OBLOCK, 0);
+	obj->tag = tag;
 	obj->up = up;
-	obj->vars = vars;
+	obj->body = body;
+	obj->jmp = jmp;
 	return obj;
+}
+
+Object*
+newframe(GC *gc, Object* tag, Object *local, Object *up, Object *block)
+{
+	Object *obj = newobj(gc, OFRAME, 0);
+	obj->tag = tag;
+	obj->local = local;
+	obj->up = up;
+	obj->block = block;
+	return obj;
+}
+
+Object*
+newenv(GC *gc, Object *frames, Object *bp, Object *sp)
+{
+	Object *env = newobj(gc, OENV, 0);
+	env->frames = frames;
+	env->bp = bp;
+	env->sp = sp;
+	return env;
 }
 
 Object*
@@ -46,13 +68,13 @@ newacons(GC *gc, Object *x, Object *y, Object *z)
 }
 
 Object*
-newfn(GC *gc, Object *env, Object *params, Object *body, enum OType type)
+newfn(GC *gc, Object *frame, Object *params, Object *body, enum OType type)
 {
 	Object *fn = newobj(gc, type, 0);
 	fn->type = type;
 	fn->params = params;
 	fn->body = body;
-	fn->env = env; 
+	fn->frame = frame; 
 	return fn;
 }
 
@@ -63,7 +85,7 @@ newsymbol(GC *gc, char *str, int len)
 		&Nil,  &Minus, &Plus, &Mul, &Mod, &Div, &Ge, &Le,
 		&Lt, &Gt, &Ne, &Lambda, &Car, &Cdr, &Quote, &Cons,
 		&Define, &Setq, &Eq, &If, &Macro, &Progn, &Bquote,
-		&Comma, &Not, &Splice, &Let,
+		&Comma, &Not, &Splice, &Let, &Block, &RetFrom,
 	};
 	for(int i = 0; i < sizeof(syms)/sizeof(syms[0]); ++i){
 		Object *c = syms[i];

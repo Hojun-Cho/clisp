@@ -2,6 +2,7 @@
 #include "fn.h"
 
 Object Nil	= (Object){.type=OSYMBOL, .beg="nil"};
+Object Top	= (Object){.type=OSYMBOL, .beg="top"};
 Object Splice= (Object){.type=OSYMBOL, .beg="@"};
 Object Comma= (Object){.type=OSYMBOL, .beg=","};
 Object Minus= (Object){.type=OBLTIN, .beg="-"};
@@ -20,6 +21,8 @@ Object Not	= (Object){.type=OBLTIN, .beg= "not"};
 
 Object Bquote= (Object){.type=OBLTIN, .beg="`"};
 Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
+Object Block= (Object){.type=OBLTIN, .beg="block"};
+Object RetFrom = (Object){.type=OBLTIN, .beg="return-from"};
 Object Let= (Object){.type=OBLTIN, .beg="let"};
 Object Progn=(Object){.type=OBLTIN, .beg="progn"};
 Object Car	= (Object){.type=OBLTIN, .beg="car"};
@@ -27,7 +30,7 @@ Object Cdr	= (Object){.type=OBLTIN, .beg="cdr"};
 Object Quote= (Object){.type=OBLTIN, .beg="'"};
 Object Cons	= (Object){.type=OBLTIN, .beg="cons"};
 Object Define= (Object){.type=OBLTIN, .beg="define"};
-Object Macro= (Object){.type=OBLTIN, .beg="macro"};
+Object Macro= (Object){.type=OBLTIN, .beg="defmacro"};
 Object Setq	= (Object){.type=OBLTIN, .beg="setq"};
 Object If	= (Object){.type=OBLTIN, .beg="if"};
 
@@ -38,8 +41,10 @@ extern Object* fnmod(Object *, Object *);
 extern Object* fnlambda(Object *, Object *);
 extern Object* fnlet(Object *, Object *);
 extern Object* fnprogn(Object *, Object *);
+extern Object* fnblock(Object *, Object *);
+extern Object* fnretfrom(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
-extern Object* fnmacro(Object *, Object *);
+extern Object* fndefmacro(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
 extern Object* fnundef(Object *, Object *);
 extern Object* fnquote(Object *, Object *);
@@ -67,12 +72,14 @@ bltinlookup(Object *obj)
 	}bltins[] = {
 		{&Lambda , fnlambda},
 		{&Progn , fnprogn},
+		{&Block , fnblock},
+		{&RetFrom ,fnretfrom},
 		{&Plus , fnplus},
 		{&Mul , fnmul},
 		{&Mod , fnmod},
 		{&Div , fndiv},
 		{&Define ,fndefine},
-		{&Macro ,fnmacro},
+		{&Macro ,fndefmacro},
 		{&Setq ,fnsetq},
 		{&Let ,fnlet},
 		{&Quote ,fnquote},

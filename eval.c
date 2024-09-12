@@ -1,5 +1,8 @@
 #include "dat.h"
 #include "fn.h"
+#include <assert.h>
+#include <setjmp.h>
+#include <string.h>
 
 #define cdr(x) ((x)!= &Nil && (x)->type == OCELL ? (x)->cdr : &Nil)
 #define car(x) ((x)!= &Nil && (x)->type == OCELL ? (x)->car : &Nil)
@@ -18,6 +21,35 @@ static char *typtab[] = {
 };
 
 static Object* evallist(Object *env, Object *list);
+
+static Object* curblock(Object *env) { return env->sp->car->block;	}
+static Object* curframe(Object *env) { return env->sp->car;	}
+
+static int
+_streq(Object *a, Object *b)
+{
+	int la = strlen(a->beg);
+	return la == strlen(b->beg) && memcmp(a->beg, b->beg, la) == 0;
+}
+
+static void
+enterframe(Object *env, Object *tag, Object *local, Object *up)
+{
+	assert(env->bp != &Nil);
+	Object *frame = newframe(gc, tag, local, up, curblock(env));
+	env->sp = env->sp->cdr = newcons(gc, frame, &Nil);
+}
+
+static void
+leaveframe(Object *env)
+{
+	assert(env->sp != env->bp);
+	Object *p = env->bp;
+	while(cdr(p) != env->sp)
+		p = p->cdr;
+	p->cdr = &Nil;
+	env->sp = p;
+}
 
 static int
 exprlen(Object *expr)
@@ -41,6 +73,7 @@ clone(Object *p)
 {
 	switch(p->type){
 	default: panic("unreachable");
+	case OFRAME:
 	case OENV:
 	case OSYMBOL:
 	case OINT:
@@ -49,7 +82,7 @@ clone(Object *p)
 		return p;
 	case OMACRO:
 	case OFUNC:
-		return newfn(gc, p->env, clone(p->params), clone(p->body), p->type);
+		return newfn(gc, p->frame, clone(p->params), clone(p->body), p->type);
 	case OCELL:
 		return newcons(gc, clone(p->car), clone(p->cdr));
 	case OSTRING:{
@@ -63,12 +96,10 @@ clone(Object *p)
 static Object*
 find(Object *env, Object *obj)
 {
-	for(Object *cur=env; cur!=&Nil; cur=cur->up)
-	for(Object *p=cur->vars; p!=&Nil; p=cdr(p)){
-		Object *v = car(p);
-		if(strequal(obj, car(v)))
-			return clone(cdr(v));
-	}
+	for(Object *cur=curframe(env); cur!=&Nil; cur=cur->up)
+	for(Object *p=cur->local; p!=&Nil; p=cdr(p))
+		if(strequal(obj, car(car(p))))
+			return clone(cdr(car(p)));
 	error("not exist variable");
 	return 0;
 }
@@ -83,18 +114,19 @@ _newfn(Object *env, Object *l, enum OType type)
 			error("parameter is not IDNET");
 	Object *params = l->car;
 	Object *body = l->cdr;
-	return newfn(gc, env, params, body, type);
+	return newfn(gc, curframe(env), params, body, type);
 }
 
-static Object* 
+static void 
 defvar(Object *env, Object *id, Object *val)
 {
 	if(id->type != OIDENT)
 		error("can't define, already using id");
-	for(Object *p=env->vars; p!=&Nil; p=cdr(p))
+	Object *frame = env->bp->car;
+	for(Object *p=frame->local; p!=&Nil; p=cdr(p))
 		if(strequal(id, car(car(p))))
 			error("already exist variable. use setq plz...");
-	return newacons(gc, id, val, env->vars);
+	frame->local = newacons(gc, id, val, frame->local);
 }
 
 Object*
@@ -104,12 +136,12 @@ fnlambda(Object *env, Object *l)
 }
 
 Object*
-fnmacro(Object *env, Object *l)
+fndefmacro(Object *env, Object *l)
 {
 	if(l->type != OCELL)
 		error("Malformed macro");
 	Object *macro = _newfn(env, l->cdr, OMACRO);
-	env->vars = defvar(env, l->car, macro);
+	defvar(env, l->car, macro);
 	return macro;
 }
 
@@ -130,16 +162,58 @@ fnprogn(Object *env, Object *list)
 }
 
 Object*
+fnblock(Object *env, Object *list)
+{
+	if(list->type != OCELL)
+		error("Malformed block");
+	Object *tag = car(list);
+	Object *body = cdr(list);
+	Object *frame = curframe(env);
+	jmp_buf jmp;
+	Object *b = frame->block = newblock(gc, tag, curblock(env), body, &jmp);
+	Object *res = 0;
+
+	if(setjmp(jmp) == 1){
+		res = env->retval;
+		env->retval = 0;
+		Object *p = curblock(env);
+		for(;p!=b; p=p->up)
+			assert(p->tag != &Top);
+		curframe(env)->block = p->up;
+		return res;
+	}
+
+	res = progn(env, body);
+	frame->block = frame->block->up;
+	return res;
+}
+
+Object*
+fnretfrom(Object *env, Object *list)
+{
+	if(list->type != OCELL)
+		error("Malformed return-from");
+	Object *tag = car(list);
+	Object *p = curblock(env);
+	for(; p!= &Top; p=p->up)
+		if(_streq(p->tag, tag)){
+			env->retval = eval(env, car(cdr(list)));
+			longjmp(*(jmp_buf*)p->jmp, 1);
+		}
+	error("can't excute return-from");
+	return 0;
+}
+
+Object*
 fnsetq(Object *env, Object *list)
 {
 	if(list->type != OCELL || exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed setq");
-	Object *cur = env;
-	Object *p = &Nil;
-	for(; cur!=&Nil; cur=cur->up)
-	for(p=cur->vars; p!=&Nil; p=cdr(p))
+	for(Object *frame=curframe(env); frame!=&Nil; frame=frame->up)
+	for(Object *p=frame->local; p!=&Nil; p=cdr(p))
 		if(strequal(list->car, car(car(p))))
-			return p->car->cdr = eval(env, car(cdr(list)));	
+			return p->car->cdr = eval(env, car(cdr(list)));
+
 	error("setq not exist variable");
 	return 0;
 }
@@ -149,13 +223,16 @@ fnlet(Object *env, Object *list)
 {
 	if(exprlen(list) < 2)
 		error("let (vars) bodys");
-	Object *nenv = newenv(gc, &Nil, &Nil, env) ;
-	for(Object *p=list->car; p!=&Nil; p=cdr(p)){
-		Object *var = car(car(p));
+	Object *local = &Nil;
+	for(Object *p=car(list); p!=&Nil; p=cdr(p)){
+		Object *id = car(car(p));
 		Object *val = eval(env, car(cdr(car(p))));
-		nenv->vars = defvar(nenv, var, val);
+		local = newacons(gc, id, val, local);
 	}
-	return progn(nenv, cdr(list));
+	enterframe(env, &Let, local, curframe(env));
+	Object *res = progn(env, cdr(list));
+	leaveframe(env);
+	return res;
 }
 
 Object*
@@ -164,7 +241,7 @@ fndefine(Object *env, Object *list)
 	if(exprlen(list)!=2)
 		error("Malformed define");
 	Object *val = eval(env, car(cdr(list)));
-	env->vars = defvar(env, car(list), val);
+	defvar(env, car(list), val);
 	return val;
 }
 
@@ -206,7 +283,7 @@ fnbquote(Object *env, Object *list)
 {
 	if(exprlen(list) != 1)
 		error("Malformed fnbquote");	
-	return evalcomma(env, list->car);
+	return evalcomma(env, car(list));
 }
 
 Object*
@@ -387,9 +464,10 @@ evallist(Object *env, Object *list)
 }
 
 static Object*
-enter(Object *env, Object *vars, Object *args)
+applyargs(Object *fn, Object *args)
 {
 	Object *map = &Nil;
+	Object *vars = fn->params;
 	for(;vars->type==OCELL; vars=cdr(vars), args=cdr(args)){
 		if(args != &Nil && args->type!=OCELL)
 			error("Cna't apply function argment dose not match");
@@ -399,44 +477,45 @@ enter(Object *env, Object *vars, Object *args)
 	}
 	if(vars != &Nil)
 		map = newacons(gc, vars, args, map);
-	return newenv(gc, &Nil, map, env);
+	return map;
 }
 
 static Object*
-applyfn(Object *fn, Object *args)
+applyfn(Object *env, Object *tag, Object *fn, Object *args)
 {
-	Object *env = enter(fn->env, fn->params, args);
-	return progn(env, fn->body);
+	Object *local = applyargs(fn, args);
+	enterframe(env, tag, local,fn->frame);
+	Object *res = progn(env, fn->body);
+	leaveframe(env);
+	return res;
 }
 
 static Object*
-applymacro(Object *env, Object* fn, Object *args)
+applymacro(Object *env, Object *tag, Object* fn, Object *args)
 {
-	Object *nenv = enter(fn->env, fn->params, args);
-	Object *r = 0;
-	for(Object *p=fn->body; p!=&Nil; p=cdr(p)){
-		r = eval(nenv, car(p));
-	}
+	Object *local = applyargs(fn, args);
+	enterframe(env, tag, local, fn->frame);
+	Object *r = progn(env, fn->body);
+	leaveframe(env);
 	return eval(env, r);
 }
 
 static Object*
-apply(Object *env, Object *fn, Object *args)
+apply(Object *env, Object *tag, Object *fn, Object *args)
 {
-	if(islist(args) == 0)
-		error("apply:args is not list type");
 	switch(fn->type){
 	default:
 		error("apply:can't eval type");
-    case OMACRO:
-    	return applymacro(env, fn, args);
+		return 0;
 	case OBLTIN:{
             Bltinfn blt = bltinlookup(fn);
             return blt(env, args);
         }
+	case OMACRO:
+		return applymacro(env, tag, fn, args);
 	case OFUNC:{
 			Object *elist = evallist(env, args);
-			Object*res = applyfn(fn, elist);
+			Object*res = applyfn(env, tag, fn, elist);
 			return res;
 		}
 	}
@@ -448,6 +527,7 @@ eval(Object *env, Object *obj)
 	switch(obj->type){
 	default:
 		error("eval: can't eval type");
+		return 0;
 	case OSTRING:
 	case OINT:
 	case OBLTIN:
@@ -457,7 +537,7 @@ eval(Object *env, Object *obj)
 			return find(env, obj);
 	case OCELL:{
 			Object *fn = eval(env, obj->car);
-			Object *res = apply(env, fn, obj->cdr);
+			Object *res = apply(env, obj->car, fn, obj->cdr);
 			return res;
 		}
 	}

@@ -46,7 +46,6 @@ repl(Object *env, FILE *f, char *pre)
 		Object *res = nextexpr(f);
 		res = eval(env, res);
 		printexpr(res);
-		printgc("status", gc);
 	}
 }
 
@@ -67,7 +66,9 @@ readlib(FILE *f, Object *env)
 void
 lispmain(char *argv[])
 {
-	Object *env = newenv(gc , &Nil, &Nil, &Nil);
+	Object *frame = newframe(gc, &Top, &Nil, &Nil, &Top);
+	Object *cons = newcons(gc, frame, &Nil);
+	Object *env = newenv(gc, cons, cons, cons);
 	for(; *argv; ++argv){
 		FILE *f = fopen(*argv, "r");
 		if(f == 0)

@@ -42,6 +42,7 @@ findobj(GC *gc, uintptr_t *stk)
 static Object*
 cloneobj(GC *dst, GC *src, Object *obj)
 {
+	if(obj==0)return 0;
 	if(obj->type==OBLTIN||obj->type==OSYMBOL) return obj;
 	if(obj->flag&FORWARD) return obj->forward;
 
@@ -65,17 +66,32 @@ cloneobj(GC *dst, GC *src, Object *obj)
 		p->cdr = cloneobj(dst, src, obj->cdr);
 		break;
 	case OENV:
-		obj->forward = p = newenv(dst, &Nil, &Nil, &Nil);
-		p->name = cloneobj(dst, src, obj->name);
-		p->vars = cloneobj(dst, src, obj->vars);
+		obj->forward = p = newenv(dst,&Nil, &Nil, &Nil);
+		p->frames = cloneobj(dst, src, obj->frames);
+		p->bp = cloneobj(dst, src, obj->bp);
+		p->sp = cloneobj(dst, src, obj->sp);
+		p->retval = cloneobj(dst, src, obj->retval);
+		break;
+	case OBLOCK:
+		obj->forward = p = newblock(dst, &Nil, &Nil, &Nil, obj->jmp);
+		p->tag = cloneobj(dst, src, obj->tag);
 		p->up = cloneobj(dst, src, obj->up);
+		p->body = cloneobj(dst, src, obj->body);
+		p->jmp = obj->jmp;
+		break;
+	case OFRAME:
+		obj->forward = p = newframe(dst, &Nil, &Nil, &Nil, &Nil);
+		p->tag = cloneobj(dst, src, obj->tag);
+		p->local = cloneobj(dst, src, obj->local);
+		p->up = cloneobj(dst, src, obj->up);
+		p->block = cloneobj(dst, src, obj->block);
 		break;
 	case OMACRO:
 	case OFUNC:
 		obj->forward = p = newfn(dst, &Nil, &Nil, &Nil, obj->type);
 		p->params = cloneobj(dst, src, obj->params);
 		p->body = cloneobj(dst, src, obj->body);
-		p->env = cloneobj(dst, src, obj->env);
+		p->frame = cloneobj(dst, src, obj->frame);
 		break;
 	}
 	return p;
@@ -117,7 +133,7 @@ gcraise(GC *src)
 static void
 mark(GC *gc, Object *obj)
 {
-	if(obj->flag&USING||obj->type==ONONE||obj->type==OSYMBOL||obj->type==OBLTIN)
+	if(obj==0||obj->flag&USING||obj->type==ONONE||obj->type==OSYMBOL||obj->type==OBLTIN)
 		return;
 
 	obj->flag = USING;
@@ -128,15 +144,27 @@ mark(GC *gc, Object *obj)
 		mark(gc, obj->cdr);
 		break;
 	case OENV:
-		mark(gc, obj->name);
-		mark(gc, obj->vars);
+		mark(gc, obj->frames);
+		mark(gc, obj->bp);
+		mark(gc, obj->sp);
+		mark(gc, obj->retval);
+		break;
+	case OBLOCK:
+		mark(gc, obj->tag);
 		mark(gc, obj->up);
+		mark(gc, obj->body);
+		break;
+	case OFRAME:
+		mark(gc, obj->tag);
+		mark(gc, obj->local);
+		mark(gc, obj->up);
+		mark(gc, obj->block);
 		break;
 	case OMACRO:
 	case OFUNC:
 		mark(gc, obj->params);
 		mark(gc, obj->body);
-		mark(gc, obj->env);
+		mark(gc, obj->frame);
 		break;
 	}
 }
