@@ -31,9 +31,13 @@ SExprint(Object *obj)
 	case OSYMBOL:
 		printf("%s", obj->beg);
 		break;
+	case OFRAME:
+		printf("<frame> %s\n", obj->tag->beg);
+		printexpr(obj->local);
+		break;
 	case OENV:
 		printf("<env>");
-		SExprint(obj->vars);
+		printexpr(obj->frames);
 		break;
 	case OMACRO:
 		printf("<macro>");

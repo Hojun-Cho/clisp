@@ -13,6 +13,7 @@ enum OType
 	OINT,
 	OFUNC,
 	OMACRO,
+	OFRAME,
 	OENV,
 };
 
@@ -39,19 +40,26 @@ struct Object
 		struct{
 			Object *params;
 			Object *body;
-			Object *env;
+			Object *frame; /* running frame */
 		};
-		/* env */ 
+		/* Frame */
 		struct{
-			Object *name;
+			Object *tag;    /* block name  */
+			Object *local;  /* local vars  */
 			Object *up;
-			Object *vars;
+		};
+		/* Env */
+		struct{
+			Object *frames;
+			Object *bp;
+			Object *sp; /* current */
 		};
 	};
 };
 
 extern GC *gc;
 extern Object Nil;
+extern Object Top;
 extern Object Comma;
 extern Object Splice;
 extern Object Bquote;

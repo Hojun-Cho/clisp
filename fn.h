@@ -12,11 +12,12 @@ Object* eval(Object *env, Object *expr);
 /* new */
 Object* newint(GC *,long);
 Object* newcons(GC *,Object*,Object*);
-Object* newenv(GC *,Object*name, Object *vars, Object *up);
+Object* newenv(GC *gc, Object *frames, Object *bp, Object *sp);
+Object* newframe(GC *gc, Object* tag, Object *local, Object *up);
 Object* newacons(GC *,Object*, Object*, Object*);
 Object* newsymbol(GC *,char*, int);
 Object* newstr(GC *,int);
-Object* newfn(GC *,Object *env, Object *params, Object *body, enum OType type);
+Object* newfn(GC *,Object *frame, Object *params, Object *body, enum OType type);
 
 /* gc.c */
 GC* newgc(void *top, int cap);

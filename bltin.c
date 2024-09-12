@@ -2,6 +2,7 @@
 #include "fn.h"
 
 Object Nil	= (Object){.type=OSYMBOL, .beg="nil"};
+Object Top	= (Object){.type=OSYMBOL, .beg="top"};
 Object Splice= (Object){.type=OSYMBOL, .beg="@"};
 Object Comma= (Object){.type=OSYMBOL, .beg=","};
 Object Minus= (Object){.type=OBLTIN, .beg="-"};
@@ -27,7 +28,7 @@ Object Cdr	= (Object){.type=OBLTIN, .beg="cdr"};
 Object Quote= (Object){.type=OBLTIN, .beg="'"};
 Object Cons	= (Object){.type=OBLTIN, .beg="cons"};
 Object Define= (Object){.type=OBLTIN, .beg="define"};
-Object Macro= (Object){.type=OBLTIN, .beg="macro"};
+Object Macro= (Object){.type=OBLTIN, .beg="defmacro"};
 Object Setq	= (Object){.type=OBLTIN, .beg="setq"};
 Object If	= (Object){.type=OBLTIN, .beg="if"};
 
@@ -39,7 +40,7 @@ extern Object* fnlambda(Object *, Object *);
 extern Object* fnlet(Object *, Object *);
 extern Object* fnprogn(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
-extern Object* fnmacro(Object *, Object *);
+extern Object* fndefmacro(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
 extern Object* fnundef(Object *, Object *);
 extern Object* fnquote(Object *, Object *);
@@ -72,7 +73,7 @@ bltinlookup(Object *obj)
 		{&Mod , fnmod},
 		{&Div , fndiv},
 		{&Define ,fndefine},
-		{&Macro ,fnmacro},
+		{&Macro ,fndefmacro},
 		{&Setq ,fnsetq},
 		{&Let ,fnlet},
 		{&Quote ,fnquote},

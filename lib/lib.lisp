@@ -1,7 +1,7 @@
-(macro defun (name args body) 
+(defmacro defun (name args body) 
 		`(define ,name (lambda ,args ,body)))
 
-(macro cond (expr . rest)
+(defmacro cond (expr . rest)
 	(if (not expr)
 		nil
 		(let ((test  (car expr)))
@@ -9,22 +9,22 @@
 				(progn ,test ,@(cdr expr))
 				(cond ,@rest)))))
 
-(macro and (expr . rest)
+(defmacro and (expr . rest)
 	(if (not rest)
 		expr
 		(if (cond (not expr) nil)
 			`(and ,@rest))))
 
-(macro or (expr . rest)
+(defmacro or (expr . rest)
 	(if rest
 		(cond (expr) (`(or ,@rest)))
 		expr))
 
-(macro when (test . rest)
+(defmacro when (test . rest)
 	`(if ,test
 		(progn ,@rest)))
 
-(macro unless (test . rest)
+(defmacro unless (test . rest)
 	`(if (not ,test)
 		(progn ,@rest)))
 
