@@ -1,5 +1,5 @@
 (defmacro defun (name args body) 
-		`(define ,name (lambda ,args ,body)))
+		`(define ,name (block ,name (lambda ,args ,body))))
 
 (defmacro cond (expr . rest)
 	(if (not expr)

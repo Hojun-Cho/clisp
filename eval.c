@@ -1,6 +1,8 @@
 #include "dat.h"
 #include "fn.h"
 #include <assert.h>
+#include <setjmp.h>
+#include <string.h>
 
 #define cdr(x) ((x)!= &Nil && (x)->type == OCELL ? (x)->cdr : &Nil)
 #define car(x) ((x)!= &Nil && (x)->type == OCELL ? (x)->car : &Nil)
@@ -19,6 +21,35 @@ static char *typtab[] = {
 };
 
 static Object* evallist(Object *env, Object *list);
+
+static Object* curblock(Object *env) { return env->sp->car->block;	}
+static Object* curframe(Object *env) { return env->sp->car;	}
+
+static int
+_streq(Object *a, Object *b)
+{
+	int la = strlen(a->beg);
+	return la == strlen(b->beg) && memcmp(a->beg, b->beg, la) == 0;
+}
+
+static void
+enterframe(Object *env, Object *tag, Object *local, Object *up)
+{
+	assert(env->bp != &Nil);
+	Object *frame = newframe(gc, tag, local, up, curblock(env));
+	env->sp = env->sp->cdr = newcons(gc, frame, &Nil);
+}
+
+static void
+leaveframe(Object *env)
+{
+	assert(env->sp != env->bp);
+	Object *p = env->bp;
+	while(cdr(p) != env->sp)
+		p = p->cdr;
+	p->cdr = &Nil;
+	env->sp = p;
+}
 
 static int
 exprlen(Object *expr)
@@ -65,7 +96,7 @@ clone(Object *p)
 static Object*
 find(Object *env, Object *obj)
 {
-	for(Object *cur=env->sp->car; cur!=&Nil; cur=cur->up)
+	for(Object *cur=curframe(env); cur!=&Nil; cur=cur->up)
 	for(Object *p=cur->local; p!=&Nil; p=cdr(p))
 		if(strequal(obj, car(car(p))))
 			return clone(cdr(car(p)));
@@ -83,7 +114,7 @@ _newfn(Object *env, Object *l, enum OType type)
 			error("parameter is not IDNET");
 	Object *params = l->car;
 	Object *body = l->cdr;
-	return newfn(gc, env->sp->car, params, body, type);
+	return newfn(gc, curframe(env), params, body, type);
 }
 
 static void 
@@ -131,36 +162,60 @@ fnprogn(Object *env, Object *list)
 }
 
 Object*
+fnblock(Object *env, Object *list)
+{
+	if(list->type != OCELL)
+		error("Malformed block");
+	Object *tag = car(list);
+	Object *body = cdr(list);
+	Object *frame = curframe(env);
+	jmp_buf jmp;
+	Object *b = frame->block = newblock(gc, tag, curblock(env), body, &jmp);
+	Object *res = 0;
+
+	if(setjmp(jmp) == 1){
+		res = env->retval;
+		env->retval = 0;
+		Object *p = curblock(env);
+		for(;p!=b; p=p->up)
+			assert(p->tag != &Top);
+		curframe(env)->block = p->up;
+		return res;
+	}
+
+	res = progn(env, body);
+	frame->block = frame->block->up;
+	return res;
+}
+
+Object*
+fnretfrom(Object *env, Object *list)
+{
+	if(list->type != OCELL)
+		error("Malformed return-from");
+	Object *tag = car(list);
+	Object *p = curblock(env);
+	for(; p!= &Top; p=p->up)
+		if(_streq(p->tag, tag)){
+			env->retval = eval(env, car(cdr(list)));
+			longjmp(*(jmp_buf*)p->jmp, 1);
+		}
+	error("can't excute return-from");
+	return 0;
+}
+
+Object*
 fnsetq(Object *env, Object *list)
 {
 	if(list->type != OCELL || exprlen(list)!=2 || list->car->type!=OIDENT)
 		error("Malformed setq");
-	for(Object *frame=env->sp->car; frame!=&Nil; frame=frame->up)
+	for(Object *frame=curframe(env); frame!=&Nil; frame=frame->up)
 	for(Object *p=frame->local; p!=&Nil; p=cdr(p))
 		if(strequal(list->car, car(car(p))))
 			return p->car->cdr = eval(env, car(cdr(list)));
 
 	error("setq not exist variable");
 	return 0;
-}
-
-static void
-enter(Object *env, Object *tag, Object *local, Object *up)
-{
-	assert(env->bp != &Nil);
-	Object *frame = newframe(gc, tag, local, up);
-	env->sp = env->sp->cdr = newcons(gc, frame, &Nil);
-}
-
-static void
-leave(Object *env)
-{
-	assert(env->sp != env->bp);
-	Object *p = env->bp;
-	while(cdr(p) != env->sp)
-		p = p->cdr; 
-	p->cdr = &Nil;
-	env->sp = p;
 }
 
 Object*
@@ -174,9 +229,9 @@ fnlet(Object *env, Object *list)
 		Object *val = eval(env, car(cdr(car(p))));
 		local = newacons(gc, id, val, local);
 	}
-	enter(env, &Let, local, env->sp->car);
+	enterframe(env, &Let, local, curframe(env));
 	Object *res = progn(env, cdr(list));
-	leave(env);
+	leaveframe(env);
 	return res;
 }
 
@@ -429,9 +484,9 @@ static Object*
 applyfn(Object *env, Object *tag, Object *fn, Object *args)
 {
 	Object *local = applyargs(fn, args);
-	enter(env, tag, local,fn->frame);
+	enterframe(env, tag, local,fn->frame);
 	Object *res = progn(env, fn->body);
-	leave(env);
+	leaveframe(env);
 	return res;
 }
 
@@ -439,9 +494,9 @@ static Object*
 applymacro(Object *env, Object *tag, Object* fn, Object *args)
 {
 	Object *local = applyargs(fn, args);
-	enter(env, tag, local, fn->frame);
+	enterframe(env, tag, local, fn->frame);
 	Object *r = progn(env, fn->body);
-	leave(env);
+	leaveframe(env);
 	return eval(env, r);
 }
 

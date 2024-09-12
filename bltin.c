@@ -21,6 +21,8 @@ Object Not	= (Object){.type=OBLTIN, .beg= "not"};
 
 Object Bquote= (Object){.type=OBLTIN, .beg="`"};
 Object Lambda= (Object){.type=OBLTIN, .beg="lambda"};
+Object Block= (Object){.type=OBLTIN, .beg="block"};
+Object RetFrom = (Object){.type=OBLTIN, .beg="return-from"};
 Object Let= (Object){.type=OBLTIN, .beg="let"};
 Object Progn=(Object){.type=OBLTIN, .beg="progn"};
 Object Car	= (Object){.type=OBLTIN, .beg="car"};
@@ -39,6 +41,8 @@ extern Object* fnmod(Object *, Object *);
 extern Object* fnlambda(Object *, Object *);
 extern Object* fnlet(Object *, Object *);
 extern Object* fnprogn(Object *, Object *);
+extern Object* fnblock(Object *, Object *);
+extern Object* fnretfrom(Object *, Object *);
 extern Object* fndefine(Object *, Object *);
 extern Object* fndefmacro(Object *, Object *);
 extern Object* fnsetq(Object *, Object *);
@@ -68,6 +72,8 @@ bltinlookup(Object *obj)
 	}bltins[] = {
 		{&Lambda , fnlambda},
 		{&Progn , fnprogn},
+		{&Block , fnblock},
+		{&RetFrom ,fnretfrom},
 		{&Plus , fnplus},
 		{&Mul , fnmul},
 		{&Mod , fnmod},

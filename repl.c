@@ -66,7 +66,7 @@ readlib(FILE *f, Object *env)
 void
 lispmain(char *argv[])
 {
-	Object *frame = newframe(gc, &Top, &Nil, &Nil);
+	Object *frame = newframe(gc, &Top, &Nil, &Nil, &Top);
 	Object *cons = newcons(gc, frame, &Nil);
 	Object *env = newenv(gc, cons, cons, cons);
 	for(; *argv; ++argv){

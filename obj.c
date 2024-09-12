@@ -29,12 +29,24 @@ newcons(GC *gc, Object *car, Object *cdr)
 }
 
 Object*
-newframe(GC *gc, Object* tag, Object *local, Object *up)
+newblock(GC *gc, Object* tag, Object *up, Object *body, void *jmp)
+{
+	Object *obj = newobj(gc, OBLOCK, 0);
+	obj->tag = tag;
+	obj->up = up;
+	obj->body = body;
+	obj->jmp = jmp;
+	return obj;
+}
+
+Object*
+newframe(GC *gc, Object* tag, Object *local, Object *up, Object *block)
 {
 	Object *obj = newobj(gc, OFRAME, 0);
 	obj->tag = tag;
 	obj->local = local;
 	obj->up = up;
+	obj->block = block;
 	return obj;
 }
 
@@ -73,7 +85,7 @@ newsymbol(GC *gc, char *str, int len)
 		&Nil,  &Minus, &Plus, &Mul, &Mod, &Div, &Ge, &Le,
 		&Lt, &Gt, &Ne, &Lambda, &Car, &Cdr, &Quote, &Cons,
 		&Define, &Setq, &Eq, &If, &Macro, &Progn, &Bquote,
-		&Comma, &Not, &Splice, &Let,
+		&Comma, &Not, &Splice, &Let, &Block, &RetFrom,
 	};
 	for(int i = 0; i < sizeof(syms)/sizeof(syms[0]); ++i){
 		Object *c = syms[i];

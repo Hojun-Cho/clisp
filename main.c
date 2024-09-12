@@ -31,9 +31,13 @@ SExprint(Object *obj)
 	case OSYMBOL:
 		printf("%s", obj->beg);
 		break;
+	case OBLOCK:
+		printf("\n<block-%s>\n", obj->tag->beg);
+		break;
 	case OFRAME:
-		printf("<frame> %s\n", obj->tag->beg);
+		printf("\n<frame-%s>\n", obj->tag->beg);
 		printexpr(obj->local);
+		printexpr(obj->block);
 		break;
 	case OENV:
 		printf("<env>");
@@ -64,7 +68,7 @@ int
 main(int argc, char *argv[])
 {
 	*argv = "lib/lib.lisp";
-	gc = newgc(&argc, 400);
+	gc = newgc(&argc, 24000);
 	lispmain(argv);
 	panic("unreachable");
 }
