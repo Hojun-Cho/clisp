@@ -20,5 +20,13 @@
 		(cond (expr) (`(or ,@rest)))
 		expr))
 
+(macro when (test . rest)
+	`(if ,test
+		(progn ,@rest)))
+
+(macro unless (test . rest)
+	`(if (not ,test)
+		(progn ,@rest)))
+
 (defun list (x . y) (cons x y))
 
